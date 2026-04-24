@@ -57,11 +57,13 @@ const main = async (): Promise<void> => {
       runtimeProgram.parseOptions(argv);
       p.intro("Comet");
       const overrides = collectRuntimeOverrides(runtimeProgram);
-      await runCommitFlow({
+      const didRun = await runCommitFlow({
         ...overrides,
         previewOnly: overrides.previewOnly ?? false,
       });
-      p.outro("Done.");
+      if (didRun) {
+        p.outro("Done.");
+      }
       return;
     }
 

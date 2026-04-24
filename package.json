@@ -1,8 +1,8 @@
 {
-  "name": "@arseno/comet",
+  "name": "@arseno25/comet",
   "version": "0.1.0",
   "description": "AI commit message assistant with secure diff redaction and modern terminal UX.",
-  "author": "Arseno Kalam",
+  "author": "arseno25",
   "license": "MIT",
   "type": "module",
   "repository": {

@@ -77,6 +77,15 @@ export const registerInitCommand = (program: Command): void => {
         process.exit(0);
       }
 
+      const gitPush = await p.confirm({
+        message: "Enable git push by default?",
+        initialValue: true,
+      });
+      if (p.isCancel(gitPush)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
       const privacyMode = provider === "local-only" ? "local-only" : "standard";
 
       await setManyGlobalConfigValues([
@@ -87,6 +96,7 @@ export const registerInitCommand = (program: Command): void => {
         { key: "language", value: language },
         { key: "emoji", value: String(emoji) },
         { key: "description", value: String(description) },
+        { key: "gitPush", value: String(gitPush) },
         { key: "privacyMode", value: privacyMode },
       ]);
 

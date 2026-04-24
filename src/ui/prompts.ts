@@ -24,3 +24,16 @@ export const handlePromptCancel = (): never => {
   p.cancel("Operation cancelled.");
   process.exit(0);
 };
+
+export const confirmGitPush = async (): Promise<boolean> => {
+  const result = await p.confirm({
+    message: "Commit created. Push to remote now?",
+    initialValue: true,
+  });
+
+  if (p.isCancel(result)) {
+    return false;
+  }
+
+  return result;
+};

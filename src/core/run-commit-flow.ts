@@ -1,12 +1,15 @@
 import type { RuntimeOverrides } from "../domain/models.js";
+import { loadConfig } from "../config/loader.js";
+import { getStagedFiles } from "../git/status.js";
 import { createGitCommit } from "../git/commit.js";
 import { pushGitCommit } from "../git/push.js";
 import { logger } from "../ui/logger.js";
 import { renderCommitPreview } from "../ui/panels.js";
-import { chooseCommitAction, handlePromptCancel } from "../ui/prompts.js";
+import { chooseCommitAction, confirmGitPush, handlePromptCancel } from "../ui/prompts.js";
 import { createSpinner, isInteractiveTerminal } from "../ui/spinner.js";
 import { editTextInEditor } from "../utils/editor.js";
-import { generateCommitBundle } from "./generate-commit.js";
+import { omitUndefined } from "../utils/object.js";
+import { ensureReadyRepository, generateCommitBundle } from "./generate-commit.js";
 
 const commitAndMaybePush = async (
   message: string,
@@ -20,6 +23,17 @@ const commitAndMaybePush = async (
     return;
   }
 
+  if (!isInteractiveTerminal()) {
+    logger.warn("Git push is enabled, but push confirmation requires a TTY. Skipping push.");
+    return;
+  }
+
+  const shouldPush = await confirmGitPush();
+  if (!shouldPush) {
+    logger.step("Skipped git push.");
+    return;
+  }
+
   await pushGitCommit(cwd);
   logger.success("Git push completed.");
 };
@@ -27,7 +41,33 @@ const commitAndMaybePush = async (
 export const runCommitFlow = async (
   overrides: RuntimeOverrides = {},
   cwd = process.cwd()
-): Promise<void> => {
+): Promise<boolean> => {
+  const config = await loadConfig(
+    omitUndefined({
+      provider: overrides.provider,
+      model: overrides.model,
+      baseUrl: overrides.baseUrl,
+      apiKey: overrides.apiKey,
+      language: overrides.language,
+      emoji: overrides.emoji,
+      description: overrides.description,
+      oneLine: overrides.oneLine,
+      omitScope: overrides.omitScope,
+      why: overrides.why,
+      gitPush: overrides.gitPush,
+      privacyMode: overrides.privacyMode,
+    }),
+    cwd
+  );
+
+  await ensureReadyRepository(config, cwd);
+  const stagedFiles = await getStagedFiles(cwd);
+
+  if (stagedFiles.length === 0) {
+    logger.warn("No staged changes found. Run `git add .` first or enable COMET_STAGE_ALL.");
+    return false;
+  }
+
   while (true) {
     const spinner = createSpinner();
     spinner.start("Analyzing staged diff and generating commit message");
@@ -42,12 +82,12 @@ export const runCommitFlow = async (
     console.log(renderCommitPreview(bundle.formattedMessage, bundle.context));
 
     if (overrides.previewOnly) {
-      return;
+      return true;
     }
 
     if (bundle.config.autoCommit || overrides.autoAccept) {
       await commitAndMaybePush(bundle.formattedMessage, bundle.config.gitPush, cwd);
-      return;
+      return true;
     }
 
     if (!isInteractiveTerminal()) {
@@ -72,10 +112,10 @@ export const runCommitFlow = async (
       }
 
       await commitAndMaybePush(editedMessage, bundle.config.gitPush, cwd);
-      return;
+      return true;
     }
 
     await commitAndMaybePush(bundle.formattedMessage, bundle.config.gitPush, cwd);
-    return;
+    return true;
   }
 };
