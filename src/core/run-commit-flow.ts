@@ -9,6 +9,7 @@ import { chooseCommitAction, confirmGitPush, handlePromptCancel } from "../ui/pr
 import { createSpinner, isInteractiveTerminal } from "../ui/spinner.js";
 import { editTextInEditor } from "../utils/editor.js";
 import { omitUndefined } from "../utils/object.js";
+import { printJson } from "../utils/output.js";
 import { ensureReadyRepository, generateCommitBundle } from "./generate-commit.js";
 
 const commitAndMaybePush = async (
@@ -79,7 +80,11 @@ export const runCommitFlow = async (
       logger.warn("Diff was truncated to stay within the configured token budget.");
     }
 
-    console.log(renderCommitPreview(bundle.formattedMessage, bundle.context));
+    if (overrides.json) {
+      printJson(bundle);
+    } else {
+      console.log(renderCommitPreview(bundle));
+    }
 
     if (overrides.previewOnly) {
       return true;

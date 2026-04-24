@@ -25,6 +25,10 @@ export const configSchema = z.object({
   redactSecrets: z.boolean(),
   privacyMode: z.enum(["standard", "strict", "local-only"]),
   excludeFiles: z.array(z.string()).default([]),
+  policyAllowedTypes: z.array(z.enum(commitTypes)).default([...commitTypes]),
+  policyRequireIssueKey: z.boolean().default(false),
+  issueKeyPattern: z.string().min(1).default("[A-Z][A-Z0-9]+-\\d+"),
+  policyScopeMap: z.record(z.string(), z.string()).nullable().default(null),
 });
 
 export const generatedCommitSchema = z.object({
@@ -35,4 +39,5 @@ export const generatedCommitSchema = z.object({
   breaking: z.boolean().default(false),
   breakingDescription: z.string().trim().min(1).nullable().catch(null),
   why: z.string().trim().min(1).nullable().catch(null),
+  issueKey: z.string().trim().min(1).nullable().catch(null).default(null),
 });

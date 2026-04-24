@@ -5,6 +5,8 @@
   "author": "arseno25",
   "license": "MIT",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/arseno25/comet.git"
@@ -15,6 +17,12 @@
   "homepage": "https://github.com/arseno25/comet#readme",
   "bin": {
     "comet": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "files": [
     "dist"

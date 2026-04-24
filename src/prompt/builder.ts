@@ -23,21 +23,36 @@ export const createPrompt = (
   context: GitDiffContext,
   analysis: CommitAnalysis
 ): { prompt: string; payload: string; truncated: boolean } => {
-  const instructions = buildConventionalCommitInstructions();
+  const instructions = buildConventionalCommitInstructions(config.policyAllowedTypes);
   const privacyPayload =
     config.privacyMode === "strict"
-      ? `Files:\n${context.files.map((file) => `- ${file}`).join("\n")}\n\nSummary:\n${analysis.summary}`
-      : context.safeDiff;
+      ? [
+          "Files:",
+          ...context.includedFiles.map((file) => `- ${file}`),
+          "",
+          "Summary:",
+          analysis.summary,
+          "",
+          "Semantic diff:",
+          context.semanticDiff,
+        ].join("\n")
+      : context.semanticDiff || context.safeDiff;
   const diffBudget = truncateDiffToBudget(privacyPayload, config.maxInputTokens);
 
   const payload = [
     `Language: ${config.language}`,
+    `Allowed types: ${analysis.allowedTypes.join(", ")}`,
     `Candidate type: ${analysis.candidateType}`,
     `Candidate scope: ${analysis.candidateScope ?? "none"}`,
     `Changed areas: ${analysis.changedAreas.join(", ") || "unknown"}`,
     `Diff summary: ${analysis.summary}`,
+    `Issue key: ${analysis.issueKey ?? "none"}`,
+    `Confidence: ${analysis.confidence}`,
+    `Rationale: ${analysis.rationale.join(" | ") || "none"}`,
+    `Redactions: ${context.redactionReport.totalMatches}`,
+    `Skipped files: ${context.skippedFiles.length || 0}`,
     "",
-    "Safe diff:",
+    "Semantic diff:",
     diffBudget.diff,
   ].join("\n");
 

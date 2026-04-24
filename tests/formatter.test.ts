@@ -13,6 +13,7 @@ describe("formatCommitMessage", () => {
         breaking: true,
         breakingDescription: "session tokens must include role metadata",
         why: null,
+        issueKey: null,
       },
       defaultConfig
     );
@@ -20,5 +21,26 @@ describe("formatCommitMessage", () => {
     expect(message).toContain("feat(auth)!");
     expect(message).toContain("- validate user role metadata");
     expect(message).toContain("BREAKING CHANGE:");
+  });
+
+  it("appends issue keys when policy requires them", () => {
+    const message = formatCommitMessage(
+      {
+        type: "feat",
+        scope: "auth",
+        subject: "add session validation",
+        body: [],
+        breaking: false,
+        breakingDescription: null,
+        why: null,
+        issueKey: "COMET-42",
+      },
+      {
+        ...defaultConfig,
+        policyRequireIssueKey: true,
+      }
+    );
+
+    expect(message).toContain("[COMET-42]");
   });
 });

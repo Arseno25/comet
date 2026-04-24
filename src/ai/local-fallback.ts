@@ -35,5 +35,6 @@ export const createLocalFallbackCommit = (
   body: context.files.slice(0, 3).map((file) => `touch ${file}`),
   breaking: false,
   breakingDescription: null,
-  why: null,
+  why: analysis.rationale[0] ?? null,
+  issueKey: analysis.issueKey,
 });

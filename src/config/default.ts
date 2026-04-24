@@ -1,4 +1,4 @@
-import type { CometConfig } from "../domain/models.js";
+import { commitTypes, type CometConfig } from "../domain/models.js";
 
 export const defaultExcludeFiles = [
   ".env",
@@ -45,4 +45,8 @@ export const defaultConfig: CometConfig = {
   redactSecrets: true,
   privacyMode: "standard",
   excludeFiles: defaultExcludeFiles,
+  policyAllowedTypes: [...commitTypes],
+  policyRequireIssueKey: false,
+  issueKeyPattern: "[A-Z][A-Z0-9]+-\\d+",
+  policyScopeMap: null,
 };

@@ -14,6 +14,15 @@ export const commitTypes = [
 
 export type CommitType = (typeof commitTypes)[number];
 export type PrivacyMode = "standard" | "strict" | "local-only";
+export type AnalysisConfidence = "high" | "medium" | "low";
+export type GenerationSource = "provider" | "local-fallback";
+export type SemanticChangeType =
+  | "behavioral"
+  | "format-only"
+  | "rename-only"
+  | "deletion-only"
+  | "addition-only"
+  | "mixed";
 
 export interface CometConfig {
   provider: string;
@@ -37,6 +46,10 @@ export interface CometConfig {
   redactSecrets: boolean;
   privacyMode: PrivacyMode;
   excludeFiles: string[];
+  policyAllowedTypes: CommitType[];
+  policyRequireIssueKey: boolean;
+  issueKeyPattern: string;
+  policyScopeMap: Record<string, string> | null;
 }
 
 export interface GitDiffStats {
@@ -47,18 +60,27 @@ export interface GitDiffStats {
 
 export interface GitDiffContext {
   branch: string;
+  issueKey: string | null;
   files: string[];
+  includedFiles: string[];
   stats: GitDiffStats;
   rawDiff: string;
   safeDiff: string;
+  semanticDiff: string;
   skippedFiles: string[];
+  redactionReport: RedactionReport;
+  semanticChanges: SemanticFileChange[];
 }
 
 export interface CommitAnalysis {
   candidateType: CommitType;
+  allowedTypes: CommitType[];
   candidateScope: string | null;
   changedAreas: string[];
   summary: string;
+  rationale: string[];
+  confidence: AnalysisConfidence;
+  issueKey: string | null;
 }
 
 export interface GeneratedCommit {
@@ -69,6 +91,40 @@ export interface GeneratedCommit {
   breaking: boolean;
   breakingDescription: string | null;
   why: string | null;
+  issueKey: string | null;
+}
+
+export interface RedactionMatch {
+  label: string;
+  count: number;
+}
+
+export interface RedactionReport {
+  changed: boolean;
+  totalMatches: number;
+  matches: RedactionMatch[];
+}
+
+export interface SemanticFileChange {
+  file: string;
+  previousFile: string | null;
+  changeType: SemanticChangeType;
+  additions: number;
+  deletions: number;
+  summaryLines: string[];
+}
+
+export interface CommitQualityReport {
+  score: number;
+  confidence: AnalysisConfidence;
+  warnings: string[];
+  suggestions: string[];
+}
+
+export interface DiffReviewReport {
+  summary: string;
+  risks: string[];
+  highlights: string[];
 }
 
 export interface GenerateCommitInput {
@@ -99,4 +155,5 @@ export interface RuntimeOverrides {
   forcedType?: CommitType;
   forcedScope?: string | null;
   privacyMode?: PrivacyMode;
+  json?: boolean;
 }

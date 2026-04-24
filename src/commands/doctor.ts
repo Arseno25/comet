@@ -5,6 +5,7 @@ import { loadConfig } from "../config/loader.js";
 import { getGlobalConfigPath } from "../config/paths.js";
 import { getStagedFiles, isGitRepository } from "../git/status.js";
 import { renderConfigPanel } from "../ui/panels.js";
+import { printJson } from "../utils/output.js";
 
 const statusIcon = (status: "ok" | "warn" | "info" | "fail"): string =>
   ({
@@ -28,10 +29,15 @@ const getProjectConfigPath = (): string | null => {
 };
 
 export const registerDoctorCommand = (program: Command): void => {
-  program
+  const doctorCommand = program
     .command("doctor")
     .description("Inspect Comet config, runtime environment, and Git readiness")
-    .action(async () => {
+    .option("--json", "Print machine-readable JSON output");
+
+  doctorCommand.action(async () => {
+      const options = {
+        json: process.argv.includes("--json"),
+      };
       const config = await loadConfig();
       const inGitRepository = await isGitRepository();
       const stagedFiles = inGitRepository ? await getStagedFiles() : [];
@@ -84,6 +90,32 @@ export const registerDoctorCommand = (program: Command): void => {
 
         return `${statusIcon(rawValue ? "ok" : "info")} ${envKey}: ${rawValue ?? "[not set]"}`;
       });
+
+      if (options.json) {
+        printJson({
+          config: {
+            globalConfigPath,
+            projectConfigPath,
+            provider: config.provider,
+            model: config.model,
+            baseUrl: config.baseUrl,
+            apiKeyConfigured: hasApiKey,
+            privacyMode: config.privacyMode,
+            language: config.language,
+          },
+          git: {
+            inGitRepository,
+            stagedFiles,
+            stageAllReady,
+          },
+          overrides: overrideKeys.reduce<Record<string, string | null>>((result, keyName) => {
+            const envKey = `COMET_${keyName.replace(/[A-Z]/g, (char) => `_${char}`).toUpperCase()}`;
+            result[envKey] = envKey === "COMET_API_KEY" ? (process.env[envKey] ? "[configured]" : null) : process.env[envKey] ?? null;
+            return result;
+          }, {}),
+        });
+        return;
+      }
 
       console.log(renderConfigPanel("Doctor / Config", configLines));
       console.log(renderConfigPanel("Doctor / Git", gitLines));

@@ -22,6 +22,10 @@ const keyMap = {
   redactSecrets: "COMET_REDACT_SECRETS",
   excludeFiles: "COMET_EXCLUDE_FILES",
   privacyMode: "COMET_PRIVACY_MODE",
+  policyAllowedTypes: "COMET_POLICY_ALLOWED_TYPES",
+  policyRequireIssueKey: "COMET_POLICY_REQUIRE_ISSUE_KEY",
+  issueKeyPattern: "COMET_ISSUE_KEY_PATTERN",
+  policyScopeMap: "COMET_POLICY_SCOPE_MAP",
 } as const;
 
 export type ConfigKey = keyof typeof keyMap;
@@ -57,6 +61,7 @@ const booleanKeys = new Set<ConfigKey>([
   "gitPush",
   "stageAll",
   "redactSecrets",
+  "policyRequireIssueKey",
 ]);
 
 const numberKeys = new Set<ConfigKey>(["maxInputTokens", "maxOutputTokens"]);
@@ -91,6 +96,29 @@ export const parseScalarValue = (key: ConfigKey, rawValue: string): unknown => {
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean);
+  }
+
+  if (key === "policyAllowedTypes") {
+    if (!rawValue.trim()) {
+      return undefined;
+    }
+
+    if (rawValue.trim().startsWith("[")) {
+      return JSON.parse(rawValue) as string[];
+    }
+
+    return rawValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
+
+  if (key === "policyScopeMap") {
+    if (!rawValue.trim()) {
+      return null;
+    }
+
+    return JSON.parse(rawValue) as Record<string, string>;
   }
 
   if (!rawValue.trim()) {

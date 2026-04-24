@@ -12,5 +12,9 @@ describe("config parser", () => {
     expect(parseScalarValue("customHeaders", "{\"x-test\":\"1\"}")).toEqual({
       "x-test": "1",
     });
+    expect(parseScalarValue("policyAllowedTypes", "feat,fix")).toEqual(["feat", "fix"]);
+    expect(parseScalarValue("policyScopeMap", "{\"src/payments\":\"billing\"}")).toEqual({
+      "src/payments": "billing",
+    });
   });
 });

@@ -1,16 +1,29 @@
 import * as p from "@clack/prompts";
 import { Command } from "commander";
+import { registerAnalyzeCommand } from "./commands/analyze.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerHookCommand } from "./commands/hook.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerPreviewCommand } from "./commands/preview.js";
+import { registerReviewCommand } from "./commands/review.js";
+import { registerSquashCommand } from "./commands/squash.js";
 import { addRuntimeOptions, collectRuntimeOverrides } from "./commands/shared.js";
 import { runCommitFlow } from "./core/run-commit-flow.js";
 import { logger } from "./ui/logger.js";
 
-const subcommandNames = new Set(["commit", "preview", "config", "doctor", "init", "hook"]);
+const subcommandNames = new Set([
+  "commit",
+  "preview",
+  "analyze",
+  "review",
+  "squash",
+  "config",
+  "doctor",
+  "init",
+  "hook",
+]);
 const helpFlags = new Set(["-h", "--help"]);
 const versionFlags = new Set(["-V", "--version"]);
 
@@ -39,6 +52,9 @@ const createProgram = (): Command => {
 
   registerCommitCommand(program);
   registerPreviewCommand(program);
+  registerAnalyzeCommand(program);
+  registerReviewCommand(program);
+  registerSquashCommand(program);
   registerConfigCommand(program);
   registerDoctorCommand(program);
   registerInitCommand(program);

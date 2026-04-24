@@ -14,22 +14,34 @@ npm install -g @arseno25/comet
 
 The goal is simple: when you run `comet`, it should feel fast, clean, and immediately useful.
 
+## Product Docs
+
+- [Competitive Analysis](./COMPETITIVE_ANALYSIS.md)
+- [Roadmap](./ROADMAP.md)
+- [Product Backlog](./PRODUCT_BACKLOG.md)
+
 ## Features
 
 - Default command runs commit generation directly without requiring an extra subcommand.
 - Consistent Conventional Commit output.
 - Support for `openai` and `openai-compatible` providers.
+- Semantic diff preprocessing that collapses format-only and rename-only noise.
+- Safe-send preview that shows what Comet is about to send to the model.
 - Global config stored in `~/.comet/config.env`.
 - Project-level overrides through `.comet.env`, `.cometrc`, or `.cometrc.json`.
 - Interactive preview before commit: accept, edit, regenerate, cancel.
+- `analyze`, `review`, and `squash` workflows for pre-commit and history cleanup.
+- JSON output modes for automation and editor integrations.
+- Public library API for programmatic usage.
 - Optional commit body/description.
 - Optional emoji by commit type.
 - Optional one-line commit mode.
 - Optional scope omission.
 - Optional `why` section.
+- Team policy support for allowed commit types, required issue keys, and scope mapping.
 - Secret redaction for tokens, passwords, database URLs, private keys, and other common sensitive patterns.
 - Default file exclusion for lockfiles, `.env`, build output, and sensitive directories.
-- `doctor` command for config and environment diagnostics.
+- `doctor --json` for machine-readable environment diagnostics.
 - `prepare-commit-msg` hook installer.
 - Optional push flow with a separate confirmation after commit.
 
@@ -100,6 +112,7 @@ When staged changes exist, Comet will:
 3. filter skipped files
 4. redact sensitive data
 5. send the safe diff to the AI provider
+6. review semantic changes, redactions, and commit quality
 6. show a commit preview
 7. ask for confirmation
 8. create the commit
@@ -148,9 +161,37 @@ Same behavior as `comet`, but more explicit.
 
 ```bash
 comet preview
+comet preview --json
 ```
 
 Generate a commit message without running `git commit`.
+
+### Analyze only
+
+```bash
+comet analyze
+comet analyze --json
+```
+
+Analyze staged changes, semantic diff groups, issue key detection, and commit quality without calling `git commit`.
+
+### Review staged changes
+
+```bash
+comet review
+comet review --json
+```
+
+Show staged diff risks and highlights before commit generation.
+
+### Generate a squash message
+
+```bash
+comet squash main
+comet squash main HEAD --json
+```
+
+Generate a squash-ready commit message for a commit range.
 
 ### Interactive init
 
@@ -205,6 +246,7 @@ comet config path
 
 ```bash
 comet doctor
+comet doctor --json
 ```
 
 Shows diagnostics for:
@@ -283,6 +325,7 @@ comet --scope auth
 
 ```bash
 comet --preview
+comet --json
 comet --push
 comet --no-push
 comet --yes
@@ -401,6 +444,15 @@ COMET_PRIVACY_MODE=standard
 COMET_EXCLUDE_FILES=
 ```
 
+### Team policy
+
+```env
+COMET_POLICY_ALLOWED_TYPES=["feat","fix","docs","refactor","chore"]
+COMET_POLICY_REQUIRE_ISSUE_KEY=false
+COMET_ISSUE_KEY_PATTERN=[A-Z][A-Z0-9]+-\d+
+COMET_POLICY_SCOPE_MAP={"src/payments":"billing"}
+```
+
 ## Example OpenAI-Compatible Config
 
 ```env
@@ -491,6 +543,15 @@ git add .
 comet --preview
 ```
 
+### Automation-friendly JSON
+
+```bash
+git add .
+comet analyze --json
+comet preview --json
+comet doctor --json
+```
+
 ### Force type and scope
 
 ```bash
@@ -518,6 +579,17 @@ comet --one-line
 comet config set gitPush true
 git add .
 comet
+```
+
+## Library API
+
+Comet can also be used programmatically:
+
+```ts
+import { analyzeStagedChanges, generateCommitBundle } from "@arseno25/comet";
+
+const analysis = await analyzeStagedChanges();
+const bundle = await generateCommitBundle();
 ```
 
 ## Troubleshooting

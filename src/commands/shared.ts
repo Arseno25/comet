@@ -26,6 +26,7 @@ export const addRuntimeOptions = (command: Command): Command =>
     .option("--push", "Push after commit")
     .option("--no-push", "Do not push after commit")
     .option("--preview", "Preview only")
+    .option("--json", "Print machine-readable JSON output")
     .option("-y, --yes", "Accept generated message without prompt");
 
 const pickValue = <T>(command: Command, key: string): T | undefined =>
@@ -46,6 +47,7 @@ export const collectRuntimeOverrides = (command: Command): RuntimeOverrides => {
     why: pickValue(command, "why"),
     gitPush: pickValue(command, "push"),
     previewOnly: pickValue(command, "preview"),
+    json: pickValue(command, "json"),
     autoAccept: pickValue(command, "yes"),
     forcedType: typeValue ? normalizeCommitType(typeValue) : undefined,
     forcedScope: pickValue(command, "scope"),

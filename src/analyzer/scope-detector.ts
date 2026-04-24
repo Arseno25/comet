@@ -19,13 +19,29 @@ const normalizeArea = (file: string): string => {
   return second;
 };
 
-export const detectScope = (files: string[]): { scope: string | null; changedAreas: string[] } => {
+const resolveScopeFromMap = (
+  file: string,
+  policyScopeMap: Record<string, string> | null
+): string | null => {
+  if (!policyScopeMap) {
+    return null;
+  }
+
+  const matched = Object.entries(policyScopeMap).find(([prefix]) => file.startsWith(prefix));
+  return matched?.[1] ?? null;
+};
+
+export const detectScope = (
+  files: string[],
+  policyScopeMap: Record<string, string> | null = null
+): { scope: string | null; changedAreas: string[] } => {
   const counts = new Map<string, number>();
   const changedAreas = new Set<string>();
 
   for (const file of files) {
+    const mappedScope = resolveScopeFromMap(file, policyScopeMap);
     const matchedRule = scopeRules.find(([pattern]) => pattern.test(file));
-    const scope = matchedRule?.[1] ?? normalizeArea(file);
+    const scope = mappedScope ?? matchedRule?.[1] ?? normalizeArea(file);
     changedAreas.add(scope);
     counts.set(scope, (counts.get(scope) ?? 0) + 1);
   }
