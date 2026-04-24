@@ -1,19 +1,26 @@
 import { createCommitAnalysis } from "../analyzer/diff-summary.js";
 import { hasGenericSubject, reviewDiffRisk, reviewGeneratedCommit } from "../analyzer/quality-review.js";
+import { createSplitPlan } from "../analyzer/split-plan.js";
 import { createLocalFallbackCommit } from "../ai/local-fallback.js";
 import { createProvider } from "../ai/provider.js";
 import { loadConfig } from "../config/loader.js";
+import { createCommitIntent, createPrivacySummary, createRiskLevel } from "./copilot-insights.js";
 import type {
+  CommitIntent,
   CommitQualityReport,
   CometConfig,
   DiffReviewReport,
   GeneratedCommit,
   GitDiffContext,
+  PrivacySummary,
+  RepoMemoryInsights,
+  SplitPlan,
   RuntimeOverrides,
 } from "../domain/models.js";
 import { formatCommitMessage } from "../formatter/commit-formatter.js";
 import { collectDiffContext, collectRangeDiffContext } from "../git/diff.js";
 import { getStagedFiles, isGitRepository, stageAllChanges } from "../git/status.js";
+import { loadRepoMemory, summarizeRepoMemory } from "../memory/repo-memory.js";
 import { createPrompt } from "../prompt/builder.js";
 import { omitUndefined } from "../utils/object.js";
 import { applyMessageTemplate } from "../utils/template.js";
@@ -30,6 +37,11 @@ export interface GeneratedCommitBundle {
   truncated: boolean;
   source: "provider" | "local-fallback";
   warnings: string[];
+  intent: CommitIntent;
+  privacy: PrivacySummary;
+  repoMemory: RepoMemoryInsights;
+  riskLevel: "low" | "medium" | "high";
+  splitPlan: SplitPlan;
 }
 
 interface BundleGenerationOptions {
@@ -151,11 +163,13 @@ const enforceProductionQuality = (
 const createBundleFromContext = async (
   config: CometConfig,
   context: GitDiffContext,
+  repoMemory: RepoMemoryInsights,
   overrides: RuntimeOverrides = {},
   mode: "generate" | "inspect" = "generate",
   generationOptions: BundleGenerationOptions = {}
 ): Promise<GeneratedCommitBundle> => {
   const analysis = createCommitAnalysis(context, config);
+  const intent = createCommitIntent(analysis, repoMemory, overrides.intent);
   const regenerationAttempt = generationOptions.regenerationAttempt ?? 0;
   const warnings: string[] = [];
   let generatedCommit: GeneratedCommit;
@@ -174,7 +188,11 @@ const createBundleFromContext = async (
   } else {
     try {
       const provider = createProvider(config);
-      const prompt = createPrompt(config, context, analysis, generationOptions);
+      const prompt = createPrompt(config, context, analysis, {
+        ...generationOptions,
+        intent,
+        repoMemory,
+      });
       truncated = prompt.truncated;
       promptPayload = prompt.payload;
       generatedCommit = await provider.generateCommitMessage({
@@ -211,6 +229,14 @@ const createBundleFromContext = async (
   );
   const review = reviewGeneratedCommit(finalCommit, analysis, config);
   const diffReview = reviewDiffRisk(context, analysis);
+  const splitPlan = createSplitPlan(context, analysis, config);
+  const privacy = createPrivacySummary({
+    promptPayload,
+    privacyMode: config.privacyMode,
+    maxOutputTokens: config.maxOutputTokens,
+    context,
+  });
+  const riskLevel = createRiskLevel(context, analysis, diffReview);
 
   return {
     config,
@@ -224,6 +250,11 @@ const createBundleFromContext = async (
     truncated,
     source,
     warnings,
+    intent,
+    privacy,
+    repoMemory,
+    riskLevel,
+    splitPlan,
   };
 };
 
@@ -247,6 +278,7 @@ export const analyzeStagedChanges = async (
 ): Promise<GeneratedCommitBundle> => {
   const config = await loadConfig(toConfigOverrides(overrides), cwd);
   await ensureReadyRepository(config, cwd);
+  const repoMemory = summarizeRepoMemory(await loadRepoMemory(cwd));
 
   const stagedFiles = await getStagedFiles(cwd);
   if (stagedFiles.length === 0) {
@@ -254,7 +286,7 @@ export const analyzeStagedChanges = async (
   }
 
   const context = await collectDiffContext(config, cwd);
-  return createBundleFromContext(config, context, overrides, "generate", generationOptions);
+  return createBundleFromContext(config, context, repoMemory, overrides, "generate", generationOptions);
 };
 
 export const inspectStagedChanges = async (
@@ -263,6 +295,7 @@ export const inspectStagedChanges = async (
 ): Promise<GeneratedCommitBundle> => {
   const config = await loadConfig(toConfigOverrides(overrides), cwd);
   await ensureReadyRepository(config, cwd);
+  const repoMemory = summarizeRepoMemory(await loadRepoMemory(cwd));
 
   const stagedFiles = await getStagedFiles(cwd);
   if (stagedFiles.length === 0) {
@@ -270,7 +303,7 @@ export const inspectStagedChanges = async (
   }
 
   const context = await collectDiffContext(config, cwd);
-  return createBundleFromContext(config, context, overrides, "inspect");
+  return createBundleFromContext(config, context, repoMemory, overrides, "inspect");
 };
 
 export const analyzeCommitRange = async (
@@ -281,13 +314,14 @@ export const analyzeCommitRange = async (
   generationOptions: BundleGenerationOptions = {}
 ): Promise<GeneratedCommitBundle> => {
   const config = await loadConfig(toConfigOverrides(overrides), cwd);
+  const repoMemory = summarizeRepoMemory(await loadRepoMemory(cwd));
   const context = await collectRangeDiffContext(config, baseRef, headRef, cwd);
 
   if (context.files.length === 0) {
     throw new Error(`No changes found between ${baseRef} and ${headRef}.`);
   }
 
-  return createBundleFromContext(config, context, overrides, "generate", generationOptions);
+  return createBundleFromContext(config, context, repoMemory, overrides, "generate", generationOptions);
 };
 
 export const inspectCommitRange = async (
@@ -297,13 +331,14 @@ export const inspectCommitRange = async (
   cwd = process.cwd()
 ): Promise<GeneratedCommitBundle> => {
   const config = await loadConfig(toConfigOverrides(overrides), cwd);
+  const repoMemory = summarizeRepoMemory(await loadRepoMemory(cwd));
   const context = await collectRangeDiffContext(config, baseRef, headRef, cwd);
 
   if (context.files.length === 0) {
     throw new Error(`No changes found between ${baseRef} and ${headRef}.`);
   }
 
-  return createBundleFromContext(config, context, overrides, "inspect");
+  return createBundleFromContext(config, context, repoMemory, overrides, "inspect");
 };
 
 export const generateCommitBundle = analyzeStagedChanges;

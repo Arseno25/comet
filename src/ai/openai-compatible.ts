@@ -1,12 +1,27 @@
 import OpenAI from "openai";
+import pRetry, { AbortError } from "p-retry";
 import { generatedCommitSchema } from "../config/schema.js";
 import type { GenerateCommitInput, GeneratedCommit } from "../domain/models.js";
 import { extractJsonObject } from "../utils/json.js";
 
-const MAX_ATTEMPTS = 3;
+const MAX_RETRIES = 2;
 
 const resolveTemperature = (regenerationAttempt = 0): number =>
   regenerationAttempt <= 0 ? 0.12 : Math.min(0.32, 0.12 + regenerationAttempt * 0.08);
+
+const isRetriableProviderError = (error: unknown): boolean => {
+  const status =
+    typeof error === "object" && error !== null && "status" in error && typeof error.status === "number"
+      ? error.status
+      : null;
+
+  if (status !== null) {
+    return status === 408 || status === 429 || status >= 500;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return /timeout|temporar|rate limit|network|socket|ECONNRESET/i.test(message);
+};
 
 export class OpenAICompatibleProvider {
   async generateCommitMessage(input: GenerateCommitInput): Promise<GeneratedCommit> {
@@ -39,10 +54,9 @@ export class OpenAICompatibleProvider {
       defaultHeaders: input.customHeaders ?? undefined,
     });
 
-    let lastError: unknown = null;
-
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-      try {
+    return pRetry(
+      async () => {
+        try {
         const response = await client.chat.completions.create({
           model: input.model,
           temperature: resolveTemperature(input.regenerationAttempt),
@@ -61,15 +75,24 @@ export class OpenAICompatibleProvider {
 
         const content = response.choices[0]?.message?.content;
         if (!content) {
-          throw new Error("The provider returned an empty response.");
+          throw new AbortError("The provider returned an empty response.");
         }
 
         return generatedCommitSchema.parse(JSON.parse(extractJsonObject(content)));
       } catch (error) {
-        lastError = error;
-      }
-    }
+          if (!isRetriableProviderError(error)) {
+            throw new AbortError(error instanceof Error ? error.message : String(error));
+          }
 
-    throw new Error(`LLM request failed after ${MAX_ATTEMPTS} attempts: ${String(lastError)}`);
+          throw error;
+        }
+      },
+      {
+        retries: MAX_RETRIES,
+        factor: 2,
+        minTimeout: 250,
+        maxTimeout: 1500,
+      }
+    );
   }
 }

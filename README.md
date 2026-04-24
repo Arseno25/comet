@@ -357,6 +357,15 @@ const analysis = await analyzeStagedChanges();
 const bundle = await generateCommitBundle();
 ```
 
+## GitHub Marketplace
+
+Comet can be wrapped as a GitHub Marketplace Action, but it should be published from a separate public repository such as `comet-action`, not from this repo.
+
+Use the included guide and template:
+
+- [docs/github-marketplace.md](C:/Users/Seno/Documents/web-project/comet/docs/github-marketplace.md)
+- [templates/github-marketplace-action/action.yml](C:/Users/Seno/Documents/web-project/comet/templates/github-marketplace-action/action.yml)
+
 ## Troubleshooting
 
 ### No staged changes

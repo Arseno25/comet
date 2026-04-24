@@ -51,6 +51,95 @@ const formatStats = (bundle: GeneratedCommitBundle): string =>
     .map(([label, value]) => `${COMET_COLORS.muted(label)} ${value}`)
     .join("  ");
 
+const riskToTone = (riskLevel: GeneratedCommitBundle["riskLevel"]): CometStatusTone => {
+  switch (riskLevel) {
+    case "high":
+      return "fail";
+    case "medium":
+      return "warn";
+    default:
+      return "ok";
+  }
+};
+
+const formatRepoMemory = (bundle: GeneratedCommitBundle): string => {
+  const typeHint = bundle.repoMemory.preferredTypes[0]?.type ?? "learning";
+  const scopeHint = bundle.repoMemory.preferredScopes[0]?.scope ?? "none";
+  return `${typeHint} / ${scopeHint}`;
+};
+
+const formatPrivacy = (bundle: GeneratedCommitBundle): string => {
+  if (bundle.privacy.mode === "local-only") {
+    return "local-only / 0 tok";
+  }
+
+  return `${bundle.privacy.mode} / ~${bundle.privacy.estimatedInputTokens} tok`;
+};
+
+const shouldShowCopilotPanel = (bundle: GeneratedCommitBundle): boolean =>
+  bundle.config.showCopilot || bundle.config.uiMode === "standard" || bundle.config.uiMode === "full";
+
+const shouldShowSplitPlanPanel = (bundle: GeneratedCommitBundle): boolean =>
+  bundle.config.allowSplitSuggestions &&
+  bundle.splitPlan.recommended &&
+  (bundle.config.showSplitPlan || bundle.config.uiMode === "standard" || bundle.config.uiMode === "full");
+
+const shouldShowSafeSendPanel = (bundle: GeneratedCommitBundle): boolean =>
+  bundle.config.showSafeSend || bundle.config.uiMode === "full";
+
+const shouldShowAnalysisPanel = (bundle: GeneratedCommitBundle): boolean =>
+  bundle.config.showAnalysis || bundle.config.uiMode === "full";
+
+const shouldShowQualityPanel = (bundle: GeneratedCommitBundle): boolean =>
+  bundle.config.showQuality || bundle.config.uiMode === "full";
+
+const shouldShowWarningsPanel = (bundle: GeneratedCommitBundle): boolean =>
+  bundle.warnings.length > 0 && (bundle.config.showWarnings || bundle.config.uiMode === "full");
+
+const renderCompactSignals = (bundle: GeneratedCommitBundle): string[] => {
+  const signals = [`confidence ${bundle.analysis.confidence}`];
+
+  if (bundle.source === "local-fallback") {
+    signals.push("local fallback");
+  }
+
+  if (bundle.riskLevel !== "low") {
+    signals.push(`risk ${bundle.riskLevel}`);
+  }
+
+  if (bundle.config.allowSplitSuggestions && bundle.splitPlan.recommended) {
+    signals.push("split suggested");
+  }
+
+  if (bundle.privacy.redactions > 0) {
+    signals.push(`${bundle.privacy.redactions} redaction${bundle.privacy.redactions === 1 ? "" : "s"}`);
+  }
+
+  return [COMET_COLORS.secondary(signals.join("  •  "))];
+};
+
+const renderSplitPlanLines = (bundle: GeneratedCommitBundle): string[] => {
+  if (!bundle.splitPlan.recommended) {
+    return [COMET_COLORS.muted(bundle.splitPlan.reason)];
+  }
+
+  return [
+    renderKeyValueRow("confidence", bundle.splitPlan.confidence),
+    "",
+    bundle.splitPlan.reason,
+    "",
+    ...bundle.splitPlan.steps.slice(0, 3).flatMap((step, index) => [
+      COMET_COLORS.bold(`${index + 1}. ${step.title}`),
+      COMET_COLORS.secondary(step.summary),
+      ...renderList(step.files.slice(0, 4), "accent"),
+      ...(step.files.length > 4
+        ? [COMET_COLORS.muted(`+${step.files.length - 4} more file${step.files.length - 4 === 1 ? "" : "s"}`)]
+        : []),
+      "",
+    ]).slice(0, -1),
+  ];
+};
+
 export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
   const { config } = bundle;
   const panels: string[] = [];
@@ -81,10 +170,44 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
       COMET_COLORS.bold(bundle.formattedMessage),
       "",
       formatStats(bundle),
+      ...(config.uiMode === "minimal" ? ["", ...renderCompactSignals(bundle)] : []),
     ])
   );
 
-  if (config.showSafeSend) {
+  if (shouldShowCopilotPanel(bundle)) {
+    panels.push(
+      renderPanel(COMET_PANEL_STYLES.copilot.title, COMET_PANEL_STYLES.copilot.border, [
+        renderKeyValueRow("intent", bundle.intent.value),
+        renderKeyValueRow("intent src", bundle.intent.source),
+        renderStatusRow(
+          riskToTone(bundle.riskLevel),
+          "risk",
+          `${bundle.riskLevel} (${bundle.diffReview.risks.length} signal${bundle.diffReview.risks.length === 1 ? "" : "s"})`
+        ),
+        renderStatusRow("info", "privacy", formatPrivacy(bundle)),
+        renderKeyValueRow("repo fit", formatRepoMemory(bundle)),
+        renderKeyValueRow("confidence", bundle.analysis.confidence),
+        ...(bundle.diffReview.risks.length > 0
+          ? ["", COMET_COLORS.warning("Top risks"), ...renderList(bundle.diffReview.risks.slice(0, 2), "warning")]
+          : []),
+        ...(bundle.diffReview.highlights.length > 0
+          ? [
+              "",
+              COMET_COLORS.secondary("Highlights"),
+              ...renderList(bundle.diffReview.highlights.slice(0, 2), "success"),
+            ]
+          : []),
+      ])
+    );
+  }
+
+  if (shouldShowSplitPlanPanel(bundle)) {
+    panels.push(
+      renderPanel(COMET_PANEL_STYLES.plan.title, COMET_PANEL_STYLES.plan.border, renderSplitPlanLines(bundle))
+    );
+  }
+
+  if (shouldShowSafeSendPanel(bundle)) {
     const sendPreviewLines = [
         renderKeyValueRow("included", String(bundle.context.includedFiles.length)),
         renderKeyValueRow("skipped", String(bundle.context.skippedFiles.length)),
@@ -107,7 +230,7 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
     );
   }
 
-  if (config.showAnalysis) {
+  if (shouldShowAnalysisPanel(bundle)) {
     panels.push(
       renderPanel(COMET_PANEL_STYLES.analysis.title, COMET_PANEL_STYLES.analysis.border, [
         renderKeyValueRow("type", bundle.analysis.candidateType),
@@ -124,7 +247,7 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
     );
   }
 
-  if (config.showQuality) {
+  if (shouldShowQualityPanel(bundle)) {
     panels.push(
       renderPanel(COMET_PANEL_STYLES.quality.title, COMET_PANEL_STYLES.quality.border, [
         renderKeyValueRow("score", `${bundle.review.score}/100`),
@@ -141,7 +264,7 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
     );
   }
 
-  if (config.showWarnings && bundle.warnings.length > 0) {
+  if (shouldShowWarningsPanel(bundle)) {
     panels.push(
       renderPanel(COMET_PANEL_STYLES.warning.title, COMET_PANEL_STYLES.warning.border, [
         ...renderList(bundle.warnings, "warning"),

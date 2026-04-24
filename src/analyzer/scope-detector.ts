@@ -31,6 +31,15 @@ const resolveScopeFromMap = (
   return matched?.[1] ?? null;
 };
 
+export const detectAreaForFile = (
+  file: string,
+  policyScopeMap: Record<string, string> | null = null
+): string => {
+  const mappedScope = resolveScopeFromMap(file, policyScopeMap);
+  const matchedRule = scopeRules.find(([pattern]) => pattern.test(file));
+  return mappedScope ?? matchedRule?.[1] ?? normalizeArea(file);
+};
+
 export const detectScope = (
   files: string[],
   policyScopeMap: Record<string, string> | null = null
@@ -39,9 +48,7 @@ export const detectScope = (
   const changedAreas = new Set<string>();
 
   for (const file of files) {
-    const mappedScope = resolveScopeFromMap(file, policyScopeMap);
-    const matchedRule = scopeRules.find(([pattern]) => pattern.test(file));
-    const scope = mappedScope ?? matchedRule?.[1] ?? normalizeArea(file);
+    const scope = detectAreaForFile(file, policyScopeMap);
     changedAreas.add(scope);
     counts.set(scope, (counts.get(scope) ?? 0) + 1);
   }

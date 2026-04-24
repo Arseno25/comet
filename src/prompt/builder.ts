@@ -1,9 +1,11 @@
-import type { CommitAnalysis, CometConfig, GitDiffContext } from "../domain/models.js";
+import type { CommitAnalysis, CommitIntent, CometConfig, GitDiffContext, RepoMemoryInsights } from "../domain/models.js";
 import { buildConventionalCommitInstructions } from "./modules/conventional-commit.js";
 
 export interface PromptBuildOptions {
   regenerationAttempt?: number;
   previousMessage?: string | null;
+  intent?: CommitIntent;
+  repoMemory?: RepoMemoryInsights;
 }
 
 const estimateCharBudget = (maxTokens: number): number => Math.max(maxTokens * 4, 2000);
@@ -45,6 +47,28 @@ export const createPrompt = (
         ].join("\n")
       : context.semanticDiff || context.safeDiff;
   const diffBudget = truncateDiffToBudget(privacyPayload, config.maxInputTokens);
+  const repoMemory = options.repoMemory;
+  const repoMemoryLines =
+    repoMemory &&
+    (repoMemory.preferredTypes.length > 0 ||
+      repoMemory.preferredScopes.length > 0 ||
+      repoMemory.recentIntents.length > 0)
+      ? [
+          "Repo memory:",
+          `Preferred types: ${
+            repoMemory.preferredTypes.length > 0
+              ? repoMemory.preferredTypes.map((entry) => `${entry.type}(${entry.count})`).join(", ")
+              : "none"
+          }`,
+          `Preferred scopes: ${
+            repoMemory.preferredScopes.length > 0
+              ? repoMemory.preferredScopes.map((entry) => `${entry.scope}(${entry.count})`).join(", ")
+              : "none"
+          }`,
+          `Recent intents: ${repoMemory.recentIntents.join(" | ") || "none"}`,
+          "",
+        ]
+      : [];
 
   const payload = [
     `Language: ${config.language}`,
@@ -56,10 +80,13 @@ export const createPrompt = (
     `Issue key: ${analysis.issueKey ?? "none"}`,
     `Confidence: ${analysis.confidence}`,
     `Rationale: ${analysis.rationale.join(" | ") || "none"}`,
+    `Working intent: ${options.intent?.value ?? analysis.summary}`,
+    `Intent source: ${options.intent?.source ?? "analysis"}`,
     `Redactions: ${context.redactionReport.totalMatches}`,
     `Skipped files: ${context.skippedFiles.length || 0}`,
     `Generation attempt: ${regenerationAttempt + 1}`,
     "",
+    ...repoMemoryLines,
     ...(regenerationAttempt > 0
       ? [
           "Regeneration request:",
@@ -69,6 +96,9 @@ export const createPrompt = (
         ]
       : []),
     "Commit consistency requirements:",
+    ...(options.intent?.source === "explicit"
+      ? ["- Respect the explicit user intent unless the staged diff clearly contradicts it."]
+      : []),
     "- Prefer a specific subsystem or behavior over generic wording.",
     "- Keep the subject short and production-ready.",
     "- Use body lines only for meaningful supporting detail.",

@@ -10,6 +10,7 @@ export const addRuntimeOptions = (command: Command): Command =>
     .addOption(new Option("--model <model>", "LLM model"))
     .addOption(new Option("--base-url <url>", "OpenAI-compatible base URL"))
     .addOption(new Option("--lang <language>", "Output language"))
+    .addOption(new Option("--intent <text>", "Explicitly describe the change intent"))
     .addOption(new Option("--type <type>", "Force commit type").choices([...commitTypes]))
     .addOption(new Option("--scope <scope>", "Force commit scope"))
     .addOption(new Option("--privacy-mode <mode>", "Privacy mode").choices(["standard", "strict", "local-only"]))
@@ -40,6 +41,7 @@ export const collectRuntimeOverrides = (command: Command): RuntimeOverrides => {
     model: pickValue(command, "model"),
     baseUrl: pickValue(command, "baseUrl"),
     language: pickValue(command, "lang"),
+    intent: pickValue(command, "intent"),
     emoji: pickValue(command, "emoji"),
     description: pickValue(command, "description"),
     oneLine: pickValue(command, "oneLine"),

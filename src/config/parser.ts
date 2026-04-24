@@ -8,6 +8,7 @@ const keyMap = {
   customHeaders: "COMET_CUSTOM_HEADERS",
   promptModule: "COMET_PROMPT_MODULE",
   language: "COMET_LANGUAGE",
+  uiMode: "COMET_UI_MODE",
   description: "COMET_DESCRIPTION",
   emoji: "COMET_EMOJI",
   oneLine: "COMET_ONE_LINE",
@@ -26,10 +27,14 @@ const keyMap = {
   policyRequireIssueKey: "COMET_POLICY_REQUIRE_ISSUE_KEY",
   issueKeyPattern: "COMET_ISSUE_KEY_PATTERN",
   policyScopeMap: "COMET_POLICY_SCOPE_MAP",
+  showCopilot: "COMET_SHOW_COPILOT",
+  showSplitPlan: "COMET_SHOW_SPLIT_PLAN",
   showSafeSend: "COMET_SHOW_SAFE_SEND",
   showAnalysis: "COMET_SHOW_ANALYSIS",
   showQuality: "COMET_SHOW_QUALITY",
   showWarnings: "COMET_SHOW_WARNINGS",
+  allowSplitSuggestions: "COMET_ALLOW_SPLIT_SUGGESTIONS",
+  allowSplitExecution: "COMET_ALLOW_SPLIT_EXECUTION",
   verbose: "COMET_VERBOSE",
 } as const;
 
@@ -67,10 +72,14 @@ const booleanKeys = new Set<ConfigKey>([
   "stageAll",
   "redactSecrets",
   "policyRequireIssueKey",
+  "showCopilot",
+  "showSplitPlan",
   "showSafeSend",
   "showAnalysis",
   "showQuality",
   "showWarnings",
+  "allowSplitSuggestions",
+  "allowSplitExecution",
   "verbose",
 ]);
 

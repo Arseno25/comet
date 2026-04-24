@@ -11,6 +11,7 @@ export const configSchema = z.object({
   customHeaders: headersSchema,
   promptModule: z.string().min(1),
   language: z.string().min(2),
+  uiMode: z.enum(["minimal", "standard", "full"]).default("minimal"),
   description: z.boolean(),
   emoji: z.boolean(),
   oneLine: z.boolean(),
@@ -29,10 +30,14 @@ export const configSchema = z.object({
   policyRequireIssueKey: z.boolean().default(false),
   issueKeyPattern: z.string().min(1).default("[A-Z][A-Z0-9]+-\\d+"),
   policyScopeMap: z.record(z.string(), z.string()).nullable().default(null),
+  showCopilot: z.boolean().default(false),
+  showSplitPlan: z.boolean().default(false),
   showSafeSend: z.boolean().default(false),
   showAnalysis: z.boolean().default(false),
   showQuality: z.boolean().default(false),
   showWarnings: z.boolean().default(false),
+  allowSplitSuggestions: z.boolean().default(true),
+  allowSplitExecution: z.boolean().default(true),
   verbose: z.boolean().default(false),
 });
 

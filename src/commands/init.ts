@@ -79,16 +79,66 @@ export const registerInitCommand = (program: Command): void => {
 
       const gitPush = await p.confirm({
         message: "Enable git push by default?",
-        initialValue: true,
+        initialValue: false,
       });
       if (p.isCancel(gitPush)) {
         p.cancel("Init cancelled.");
         process.exit(0);
       }
 
+      const uiMode = await p.select({
+        message: "Default UI mode",
+        options: [
+          { value: "minimal", label: "minimal", hint: "fast default flow" },
+          { value: "standard", label: "standard", hint: "show copilot insights" },
+          { value: "full", label: "full", hint: "show all panels" },
+        ],
+        initialValue: "minimal",
+      });
+      if (p.isCancel(uiMode)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const showCopilot = await p.confirm({
+        message: "Always show Copilot panel?",
+        initialValue: uiMode !== "minimal",
+      });
+      if (p.isCancel(showCopilot)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const showSplitPlan = await p.confirm({
+        message: "Always show Split Plan when available?",
+        initialValue: uiMode !== "minimal",
+      });
+      if (p.isCancel(showSplitPlan)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const allowSplitSuggestions = await p.confirm({
+        message: "Enable split suggestions?",
+        initialValue: true,
+      });
+      if (p.isCancel(allowSplitSuggestions)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const allowSplitExecution = await p.confirm({
+        message: "Enable interactive split execution?",
+        initialValue: true,
+      });
+      if (p.isCancel(allowSplitExecution)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
       const showSafeSend = await p.confirm({
         message: "Show Safe Send panel by default?",
-        initialValue: false,
+        initialValue: uiMode === "full",
       });
       if (p.isCancel(showSafeSend)) {
         p.cancel("Init cancelled.");
@@ -97,7 +147,7 @@ export const registerInitCommand = (program: Command): void => {
 
       const showAnalysis = await p.confirm({
         message: "Show Analysis panel by default?",
-        initialValue: false,
+        initialValue: uiMode === "full",
       });
       if (p.isCancel(showAnalysis)) {
         p.cancel("Init cancelled.");
@@ -106,7 +156,7 @@ export const registerInitCommand = (program: Command): void => {
 
       const showQuality = await p.confirm({
         message: "Show Quality panel by default?",
-        initialValue: false,
+        initialValue: uiMode === "full",
       });
       if (p.isCancel(showQuality)) {
         p.cancel("Init cancelled.");
@@ -115,7 +165,7 @@ export const registerInitCommand = (program: Command): void => {
 
       const showWarnings = await p.confirm({
         message: "Show Warnings panel by default?",
-        initialValue: false,
+        initialValue: uiMode === "full",
       });
       if (p.isCancel(showWarnings)) {
         p.cancel("Init cancelled.");
@@ -130,14 +180,19 @@ export const registerInitCommand = (program: Command): void => {
         { key: "baseUrl", value: baseUrl },
         { key: "apiKey", value: apiKey },
         { key: "language", value: language },
+        { key: "uiMode", value: uiMode },
         { key: "emoji", value: String(emoji) },
         { key: "description", value: String(description) },
         { key: "gitPush", value: String(gitPush) },
         { key: "privacyMode", value: privacyMode },
+        { key: "showCopilot", value: String(showCopilot) },
+        { key: "showSplitPlan", value: String(showSplitPlan) },
         { key: "showSafeSend", value: String(showSafeSend) },
         { key: "showAnalysis", value: String(showAnalysis) },
         { key: "showQuality", value: String(showQuality) },
         { key: "showWarnings", value: String(showWarnings) },
+        { key: "allowSplitSuggestions", value: String(allowSplitSuggestions) },
+        { key: "allowSplitExecution", value: String(allowSplitExecution) },
       ]);
 
       logger.success("Global config initialized.");

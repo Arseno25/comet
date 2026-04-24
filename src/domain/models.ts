@@ -16,6 +16,8 @@ export type CommitType = (typeof commitTypes)[number];
 export type PrivacyMode = "standard" | "strict" | "local-only";
 export type AnalysisConfidence = "high" | "medium" | "low";
 export type GenerationSource = "provider" | "local-fallback";
+export type RiskLevel = "low" | "medium" | "high";
+export type UiMode = "minimal" | "standard" | "full";
 export type SemanticChangeType =
   | "behavioral"
   | "format-only"
@@ -32,6 +34,7 @@ export interface CometConfig {
   customHeaders: Record<string, string> | null;
   promptModule: string;
   language: string;
+  uiMode: UiMode;
   description: boolean;
   emoji: boolean;
   oneLine: boolean;
@@ -50,10 +53,14 @@ export interface CometConfig {
   policyRequireIssueKey: boolean;
   issueKeyPattern: string;
   policyScopeMap: Record<string, string> | null;
+  showCopilot: boolean;
+  showSplitPlan: boolean;
   showSafeSend: boolean;
   showAnalysis: boolean;
   showQuality: boolean;
   showWarnings: boolean;
+  allowSplitSuggestions: boolean;
+  allowSplitExecution: boolean;
   verbose: boolean;
 }
 
@@ -132,6 +139,58 @@ export interface DiffReviewReport {
   highlights: string[];
 }
 
+export interface CommitIntent {
+  value: string;
+  source: "explicit" | "analysis" | "repo-memory";
+}
+
+export interface PrivacySummary {
+  mode: PrivacyMode;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
+  includedFiles: number;
+  skippedFiles: number;
+  redactions: number;
+}
+
+export interface RepoMemory {
+  version: number;
+  typeCounts: Partial<Record<CommitType, number>>;
+  scopeCounts: Record<string, number>;
+  recentIntents: string[];
+  lastUpdatedAt: string | null;
+}
+
+export interface RepoMemoryInsights {
+  preferredTypes: Array<{
+    type: CommitType;
+    count: number;
+  }>;
+  preferredScopes: Array<{
+    scope: string;
+    count: number;
+  }>;
+  recentIntents: string[];
+  lastUpdatedAt: string | null;
+}
+
+export interface SplitPlanStep {
+  id: string;
+  title: string;
+  summary: string;
+  rationale: string[];
+  files: string[];
+  suggestedType: CommitType;
+  suggestedScope: string | null;
+}
+
+export interface SplitPlan {
+  recommended: boolean;
+  reason: string;
+  confidence: AnalysisConfidence;
+  steps: SplitPlanStep[];
+}
+
 export interface GenerateCommitInput {
   model: string;
   baseUrl?: string | null;
@@ -150,6 +209,7 @@ export interface RuntimeOverrides {
   baseUrl?: string | null;
   apiKey?: string | null;
   language?: string;
+  intent?: string;
   emoji?: boolean;
   description?: boolean;
   oneLine?: boolean;

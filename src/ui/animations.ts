@@ -196,6 +196,8 @@ export const COMET_COLORS = {
 
 export const COMET_PANEL_STYLES = {
   preview: { border: "cyan", title: "Commit Preview" },
+  copilot: { border: "green", title: "Copilot" },
+  plan: { border: "green", title: "Split Plan" },
   safeSend: { border: "blue", title: "Safe Send" },
   analysis: { border: "magenta", title: "Analysis" },
   quality: { border: "yellow", title: "Quality" },

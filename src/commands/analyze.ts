@@ -22,8 +22,10 @@ export const registerAnalyzeCommand = (program: Command): void => {
       renderConfigPanel("Analyze / Summary", [
         renderKeyValueRow("type", bundle.analysis.candidateType),
         renderKeyValueRow("scope", bundle.analysis.candidateScope ?? "none"),
+        renderKeyValueRow("intent", bundle.intent.value),
         renderKeyValueRow("issue key", bundle.analysis.issueKey ?? "none"),
         renderKeyValueRow("confidence", bundle.analysis.confidence),
+        renderKeyValueRow("privacy", `${bundle.privacy.mode} / ~${bundle.privacy.estimatedInputTokens} tok`),
         "",
         bundle.analysis.summary,
       ])
@@ -36,6 +38,23 @@ export const registerAnalyzeCommand = (program: Command): void => {
         renderKeyValueRow("score", `${bundle.review.score}/100`),
         "",
         ...(bundle.review.warnings.length > 0 ? renderList(bundle.review.warnings, "warning") : ["◇ No warnings"]),
+      ])
+    );
+    console.log(
+      renderConfigPanel("Analyze / Split Plan", [
+        `Recommended: ${bundle.splitPlan.recommended ? "yes" : "no"}`,
+        `Confidence: ${bundle.splitPlan.confidence}`,
+        "",
+        bundle.splitPlan.reason,
+        ...(bundle.splitPlan.steps.length > 0
+          ? [
+              "",
+              ...bundle.splitPlan.steps.slice(0, 3).flatMap((step, index) => [
+                `${index + 1}. ${step.title}`,
+                ...renderList(step.files.slice(0, 4), "accent"),
+              ]),
+            ]
+          : []),
       ])
     );
   });
