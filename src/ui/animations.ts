@@ -68,6 +68,19 @@ export const createCometSpinner = (): CometSpinner => {
     return instance;
   };
 
+  const finalize = (message: string, success: boolean): void => {
+    const symbol = success ? color.green("✦") : color.red("✕");
+    const text = message ? color.bold(message) : "";
+
+    if (!instance) {
+      if (message) console.log(`${symbol} ${text}`);
+      return;
+    }
+
+    instance.stopAndPersist({ symbol, text });
+    instance = null;
+  };
+
   return {
     start: (message) => {
       if (!process.stdout.isTTY) {
@@ -85,8 +98,7 @@ export const createCometSpinner = (): CometSpinner => {
         instance = null;
         return;
       }
-      ensure(message).succeed(`${color.green("✦")} ${color.bold(message)}`);
-      instance = null;
+      finalize(message, true);
     },
     fail: (message) => {
       if (!process.stdout.isTTY) {
@@ -94,24 +106,10 @@ export const createCometSpinner = (): CometSpinner => {
         instance = null;
         return;
       }
-      ensure(message).fail(`${color.red("✕")} ${color.bold(message)}`);
-      instance = null;
+      finalize(message, false);
     },
     stop: (message = "", success = true) => {
-      if (!instance) {
-        if (message) console.log(`${success ? color.green("✦") : color.red("✕")} ${message}`);
-        return;
-      }
-      if (success) {
-        instance.succeed(
-          message ? `${color.green("✦")} ${color.bold(message)}` : undefined
-        );
-      } else {
-        instance.fail(
-          message ? `${color.red("✕")} ${color.bold(message)}` : undefined
-        );
-      }
-      instance = null;
+      finalize(message, success);
     },
   };
 };
