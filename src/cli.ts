@@ -96,13 +96,10 @@ const main = async (): Promise<void> => {
       runtimeProgram.parseOptions(argv);
       cometIntro();
       const overrides = collectRuntimeOverrides(runtimeProgram);
-      const didRun = await runCommitFlow({
+      await runCommitFlow({
         ...overrides,
         previewOnly: overrides.previewOnly ?? false,
       });
-      if (didRun) {
-        console.log("");
-      }
       return;
     }
 

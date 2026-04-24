@@ -137,6 +137,34 @@ const renderCometTrail = (step: number): string => {
   return track.join("");
 };
 
+export type CometTreeTone = "success" | "error" | "info";
+
+const toneIcon = (tone: CometTreeTone): string => {
+  switch (tone) {
+    case "error":
+      return color.red("✕");
+    case "info":
+      return color.cyan("◇");
+    default:
+      return color.green("✦");
+  }
+};
+
+export const printTreeTail = (message: string, tone: CometTreeTone = "success"): void => {
+  const pipe = color.dim("│");
+  const elbow = color.dim("└");
+  const icon = toneIcon(tone);
+
+  if (!process.stdout.isTTY) {
+    console.log(`${icon} ${message}`);
+    return;
+  }
+
+  console.log(pipe);
+  console.log(`${elbow}  ${icon} ${color.bold(message)}`);
+  console.log("");
+};
+
 export const cometOutro = async (success = true): Promise<void> => {
   if (!process.stdout.isTTY) {
     console.log(success ? "✦ Done." : "✕ Cancelled.");
@@ -144,7 +172,7 @@ export const cometOutro = async (success = true): Promise<void> => {
   }
 
   if (!success) {
-    console.log(`${color.red("✕")} ${color.bold("Cancelled")}\n`);
+    printTreeTail("Cancelled", "error");
     return;
   }
 
@@ -155,9 +183,7 @@ export const cometOutro = async (success = true): Promise<void> => {
 
   logUpdate.clear();
   logUpdate.done();
-  console.log(
-    `${color.green("✦")} ${color.bold(cometGradient("Orbit complete"))}\n`
-  );
+  printTreeTail(cometGradient("Orbit complete"), "success");
 };
 
 export const COMET_ICONS = {

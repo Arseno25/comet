@@ -11,7 +11,7 @@ import { omitUndefined } from "../utils/object.js";
 import { printJson } from "../utils/output.js";
 import { editTextInEditor } from "../utils/editor.js";
 import { ensureReadyRepository, generateCommitBundle } from "./generate-commit.js";
-import { cometOutro } from "../ui/animations.js";
+import { cometOutro, printTreeTail } from "../ui/animations.js";
 
 const commitAndMaybePush = async (
   message: string,
@@ -70,7 +70,7 @@ export const runCommitFlow = async (
   const stagedFiles = await getStagedFiles(cwd);
 
   if (stagedFiles.length === 0) {
-    logger.warn("No staged changes found. Run `git add .` first or enable COMET_STAGE_ALL.");
+    printTreeTail("No changes detected", "info");
     return false;
   }
 
@@ -106,6 +106,7 @@ export const runCommitFlow = async (
     }
 
     if (overrides.previewOnly) {
+      printTreeTail("Preview only — no commit created", "info");
       return true;
     }
 
