@@ -1,7 +1,7 @@
 # Comet
 
 <div align="center">
-  <img src="assets/logo.png" alt="Comet Logo" width="400"/>
+  <img src="https://raw.githubusercontent.com/arseno25/comet/main/assets/logo.png" alt="Comet Logo" width="400"/>
 </div>
 
 [![npm package](https://img.shields.io/badge/npm-%40arseno25%2Fcomet-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@arseno25/comet)

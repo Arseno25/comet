@@ -11,7 +11,7 @@ const renderPanel = (
     borderStyle: "round",
     borderColor,
     padding: 1,
-    title: ` ${title} `,
+    title: ` ${COMET_COLORS.accent("✦")} ${title} `,
     titleAlignment: "left",
   });
 
@@ -41,12 +41,12 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
       `${COMET_COLORS.accent("Skipped")} ${bundle.context.skippedFiles.length}`,
       `${COMET_COLORS.accent("Redactions")} ${bundle.context.redactionReport.totalMatches}`,
       "",
-      ...bundle.context.includedFiles.slice(0, 8).map((file) => `  ${COMET_COLORS.muted("○")} ${file}`),
+      ...bundle.context.includedFiles.slice(0, 8).map((file) => `  ${COMET_COLORS.muted("◇")} ${file}`),
     ];
 
     if (bundle.context.skippedFiles.length > 0) {
       sendPreviewLines.push("", COMET_COLORS.warning("Skipped from AI payload"));
-      sendPreviewLines.push(...bundle.context.skippedFiles.slice(0, 8).map((file) => `  ${COMET_COLORS.muted("○")} ${file}`));
+      sendPreviewLines.push(...bundle.context.skippedFiles.slice(0, 8).map((file) => `  ${COMET_COLORS.muted("◇")} ${file}`));
     }
 
     panels.push(renderPanel(COMET_PANEL_STYLES.safeSend.title, COMET_PANEL_STYLES.safeSend.border, sendPreviewLines));
@@ -70,15 +70,15 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
       `${COMET_COLORS.accent("Confidence")} ${COMET_COLORS.bold(bundle.review.confidence)}`,
       "",
       ...(bundle.review.suggestions.length > 0
-        ? bundle.review.suggestions.slice(0, 5).map((s) => `  ${COMET_COLORS.success("○")} ${s}`)
-        : [`  ${COMET_COLORS.muted("○ no issues")}`]),
+        ? bundle.review.suggestions.slice(0, 5).map((s) => `  ${COMET_COLORS.success("✦")} ${s}`)
+        : [`  ${COMET_COLORS.muted("◇ no issues")}`]),
     ];
 
     panels.push(renderPanel(COMET_PANEL_STYLES.quality.title, COMET_PANEL_STYLES.quality.border, qualityLines));
   }
 
   if (config.showWarnings && bundle.warnings.length > 0) {
-    const warningLines = bundle.warnings.map((item) => `  ${COMET_COLORS.warning("○")} ${item}`);
+    const warningLines = bundle.warnings.map((item) => `  ${COMET_COLORS.warning("◇")} ${item}`);
     panels.push(renderPanel(COMET_PANEL_STYLES.warning.title, COMET_PANEL_STYLES.warning.border, warningLines));
   }
 

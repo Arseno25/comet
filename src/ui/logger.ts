@@ -1,23 +1,25 @@
-import * as p from "@clack/prompts";
-import { COMET_COLORS } from "./animations.js";
+import { COMET_COLORS, COMET_ICONS } from "./animations.js";
 
-const canUseClack = (): boolean => Boolean(process.stdout.isTTY && !process.env.CI);
-
-const writeFallback = (method: "log" | "warn" | "error", label: string, message: string): void => {
-  console[method](`${label} ${message}`);
+const write = (
+  method: "log" | "warn" | "error",
+  label: string,
+  message: string,
+  colorize: (text: string) => string
+): void => {
+  console[method](`${colorize(label)} ${message}`);
 };
 
 export const logger = {
   info: (message: string): void =>
-    canUseClack() ? p.log.info(message) : writeFallback("log", "○", message),
+    write("log", COMET_ICONS.info, message, COMET_COLORS.secondary),
   step: (message: string): void =>
-    canUseClack() ? p.log.step(message) : writeFallback("log", "⋯", message),
+    write("log", COMET_ICONS.loading, message, COMET_COLORS.primary),
   success: (message: string): void =>
-    canUseClack() ? p.log.success(message) : writeFallback("log", "✓", message),
+    write("log", COMET_ICONS.success, message, COMET_COLORS.success),
   warn: (message: string): void =>
-    canUseClack() ? p.log.warn(message) : writeFallback("warn", "⚠", message),
+    write("warn", COMET_ICONS.warning, message, COMET_COLORS.warning),
   error: (message: string): void =>
-    canUseClack() ? p.log.error(message) : writeFallback("error", "✕", message),
+    write("error", COMET_ICONS.error, message, COMET_COLORS.error),
   muted: (message: string): string => COMET_COLORS.muted(message),
   accent: (message: string): string => COMET_COLORS.primary(message),
   danger: (message: string): string => COMET_COLORS.error(message),
