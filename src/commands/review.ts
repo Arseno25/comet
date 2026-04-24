@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { inspectStagedChanges } from "../core/generate-commit.js";
-import { renderConfigPanel } from "../ui/panels.js";
+import { renderConfigPanel, renderList } from "../ui/panels.js";
 import { printJson } from "../utils/output.js";
 import { addRuntimeOptions, collectRuntimeOverrides } from "./shared.js";
 
@@ -26,15 +26,15 @@ export const registerReviewCommand = (program: Command): void => {
       renderConfigPanel("Review / Risks", [
         bundle.diffReview.summary,
         "",
-        "Risks:",
-        ...(bundle.diffReview.risks.length > 0 ? bundle.diffReview.risks.map((item) => `- ${item}`) : ["- none"]),
+        "Risks",
+        ...(bundle.diffReview.risks.length > 0 ? renderList(bundle.diffReview.risks, "warning") : ["◇ No major risks"]),
       ])
     );
     console.log(
       renderConfigPanel("Review / Highlights", [
         ...(bundle.diffReview.highlights.length > 0
-          ? bundle.diffReview.highlights.map((item) => `- ${item}`)
-          : ["- none"]),
+          ? renderList(bundle.diffReview.highlights, "success")
+          : ["◇ No highlights"]),
       ])
     );
   });

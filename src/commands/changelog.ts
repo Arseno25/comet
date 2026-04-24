@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import color from "yoctocolors";
 import { execa } from "execa";
 import { COMET_COLORS, COMET_ICONS } from "../ui/animations.js";
+import { renderConfigPanel, renderList } from "../ui/panels.js";
 import { printJson } from "../utils/output.js";
 
 interface CommitLogEntry {
@@ -84,11 +85,10 @@ const groupByType = (entries: CommitLogEntry[]): Record<string, CommitLogEntry[]
 
 const formatChangelog = (entries: CommitLogEntry[], version?: string): string => {
   const groups = groupByType(entries);
-  const lines: string[] = [];
+  const panels: string[] = [];
 
   if (version) {
-    lines.push(`## ${version}`);
-    lines.push("");
+    panels.push(renderConfigPanel("Changelog / Version", [COMET_COLORS.bold(version)]));
   }
 
   const typeLabels: Record<string, string> = {
@@ -107,19 +107,15 @@ const formatChangelog = (entries: CommitLogEntry[], version?: string): string =>
 
   for (const [type, items] of Object.entries(groups)) {
     if (items.length === 0) continue;
-
-    lines.push(`### ${typeLabels[type] || type}`);
-    lines.push("");
-
-    for (const item of items) {
-      const scopePrefix = item.scope ? `${COMET_COLORS.accent(item.scope)}: ` : "";
-      lines.push(`- ${scopePrefix}${item.subject} (${COMET_COLORS.muted(item.hash)})`);
-    }
-
-    lines.push("");
+    panels.push(
+      renderConfigPanel(`Changelog / ${typeLabels[type] || type}`, renderList(items.map((item) => {
+        const scopePrefix = item.scope ? `${COMET_COLORS.accent(item.scope)}: ` : "";
+        return `${scopePrefix}${item.subject} (${COMET_COLORS.muted(item.hash)})`;
+      })))
+    );
   }
 
-  return lines.join("\n");
+  return panels.join("\n");
 };
 
 export const registerChangelogCommand = (program: Command): void => {

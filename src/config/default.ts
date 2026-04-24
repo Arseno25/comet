@@ -49,9 +49,9 @@ export const defaultConfig: CometConfig = {
   policyRequireIssueKey: false,
   issueKeyPattern: "[A-Z][A-Z0-9]+-\\d+",
   policyScopeMap: null,
-  showSafeSend: false,
-  showAnalysis: false,
-  showQuality: false,
-  showWarnings: false,
+  showSafeSend: true,
+  showAnalysis: true,
+  showQuality: true,
+  showWarnings: true,
   verbose: false,
 };

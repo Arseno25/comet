@@ -75,6 +75,7 @@ export const COMET_COLORS = {
   primary: (text: string) => color.bold(color.cyan(text)),
   secondary: (text: string) => color.blue(text),
   accent: (text: string) => color.yellow(text),
+  violet: (text: string) => color.magenta(text),
   success: (text: string) => color.green(text),
   error: (text: string) => color.red(text),
   warning: (text: string) => color.yellow(text),
@@ -90,7 +91,39 @@ export const COMET_PANEL_STYLES = {
   quality: { border: "yellow", title: "Quality" },
   warning: { border: "red", title: "Warnings" },
   config: { border: "blue", title: "Config" },
+  git: { border: "cyan", title: "Git Status" },
+  release: { border: "green", title: "Release" },
 } as const;
+
+export type CometStatusTone = "ok" | "warn" | "fail" | "info";
+
+export const renderStatusBadge = (status: CometStatusTone): string => {
+  switch (status) {
+    case "ok":
+      return COMET_COLORS.success("OK");
+    case "warn":
+      return COMET_COLORS.warning("WARN");
+    case "fail":
+      return COMET_COLORS.error("FAIL");
+    default:
+      return COMET_COLORS.secondary("INFO");
+  }
+};
+
+export const renderBullet = (
+  tone: "default" | "accent" | "success" | "warning" = "default"
+): string => {
+  switch (tone) {
+    case "accent":
+      return COMET_COLORS.accent("✦");
+    case "success":
+      return COMET_COLORS.success("✦");
+    case "warning":
+      return COMET_COLORS.warning("◇");
+    default:
+      return COMET_COLORS.muted("◇");
+  }
+};
 
 export const cometOutro = (success = true): void => {
   if (!process.stdout.isTTY) {

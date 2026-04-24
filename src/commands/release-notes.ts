@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import color from "yoctocolors";
 import { execa } from "execa";
 import { COMET_COLORS, COMET_ICONS } from "../ui/animations.js";
+import { renderConfigPanel, renderList } from "../ui/panels.js";
 import { printJson } from "../utils/output.js";
 
 interface CommitInfo {
@@ -81,40 +82,40 @@ const formatReleaseNotes = (
   data: ReleaseNoteData,
   previousTag?: string
 ): string => {
-  const lines: string[] = [];
-
-  lines.push(color.bold(color.cyan(`# ${data.version || "Release Notes"}`)));
-  lines.push("");
-
-  if (previousTag) {
-    lines.push(color.dim(`Full Changelog: ${previousTag} → ${data.tag || "HEAD"}`));
-    lines.push("");
-  }
+  const panels: string[] = [];
 
   const { stats, commits } = data;
 
-  lines.push(color.bold("## Summary"));
-  lines.push("");
-  lines.push(`- ${COMET_ICONS.success} **${stats.total}** commits`);
-  lines.push(`- ${COMET_ICONS.info} **${stats.contributors.length}** contributors`);
+  panels.push(
+    renderConfigPanel("Release / Summary", [
+      COMET_COLORS.bold(data.version || "Release Notes"),
+      ...(previousTag ? [COMET_COLORS.dim(`Range ${previousTag} → ${data.tag || "HEAD"}`)] : []),
+      "",
+      `${COMET_ICONS.success} ${stats.total} commits`,
+      `${COMET_ICONS.info} ${stats.contributors.length} contributors`,
+    ])
+  );
 
   if (Object.keys(stats.byType).length > 0) {
-    lines.push("");
-    lines.push(color.bold("By type:"));
-    for (const [type, count] of Object.entries(stats.byType).sort(
-      (a, b) => b[1] - a[1]
-    )) {
-      lines.push(`  - ${type}: ${count}`);
-    }
+    panels.push(
+      renderConfigPanel(
+        "Release / Types",
+        renderList(
+          Object.entries(stats.byType)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type, count]) => `${type}: ${count}`),
+          "accent"
+        )
+      )
+    );
   }
-  lines.push("");
 
-  lines.push(color.bold("## Contributors"));
-  lines.push("");
-  for (const contributor of stats.contributors) {
-    lines.push(`- ${COMET_COLORS.accent(contributor)}`);
-  }
-  lines.push("");
+  panels.push(
+    renderConfigPanel(
+      "Release / Contributors",
+      renderList(stats.contributors.map((contributor) => COMET_COLORS.accent(contributor)), "success")
+    )
+  );
 
   const groupedByType: Record<string, CommitInfo[]> = {};
   for (const commit of commits) {
@@ -140,20 +141,20 @@ const formatReleaseNotes = (
     (a, b) => b[1].length - a[1].length
   )) {
     if (typeCommits.length === 0) continue;
-
-    lines.push(color.bold(`## ${typeLabels[type] || type}`));
-    lines.push("");
-
-    for (const commit of typeCommits) {
-      const cleanMessage = commit.message.replace(/^[\w]+(\([^)]+\))?:\s*/, "");
-      lines.push(
-        `- ${cleanMessage} (${COMET_COLORS.muted(commit.hash)}) - ${COMET_COLORS.dim(commit.author)}`
-      );
-    }
-    lines.push("");
+    panels.push(
+      renderConfigPanel(
+        `Release / ${typeLabels[type] || type}`,
+        renderList(
+          typeCommits.map((commit) => {
+            const cleanMessage = commit.message.replace(/^[\w]+(\([^)]+\))?:\s*/, "");
+            return `${cleanMessage} (${COMET_COLORS.muted(commit.hash)}) - ${COMET_COLORS.dim(commit.author)}`;
+          })
+        )
+      )
+    );
   }
 
-  return lines.join("\n");
+  return panels.join("\n");
 };
 
 export const registerReleaseNotesCommand = (program: Command): void => {
