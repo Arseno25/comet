@@ -4,7 +4,6 @@ import ora, { type Ora } from "ora";
 import color from "yoctocolors";
 
 const COMET_GRADIENT_STOPS = ["#06b6d4", "#8b5cf6", "#f472b6"];
-const COMET_BANNER_WIDTH = 28;
 const OUTRO_DELAY_MS = 38;
 const OUTRO_STEPS = 16;
 
@@ -16,35 +15,19 @@ const sleep = (ms: number): Promise<void> =>
 const getTerminalWidth = (): number =>
   Math.max(40, Math.min(process.stdout.columns ?? 80, 120));
 
-const centerText = (text: string, width: number): string => {
-  const pad = Math.max(0, Math.floor((width - text.length) / 2));
-  return `${" ".repeat(pad)}${text}`;
-};
-
-const renderBanner = (): string => {
-  const bar = "─".repeat(COMET_BANNER_WIDTH);
-  const title = "☄  Comet";
-  return [
-    color.dim(bar),
-    cometGradient(centerText(title, COMET_BANNER_WIDTH)),
-    color.dim(bar),
-  ].join("\n");
-};
-
 export const cometIntro = (): void => {
   if (!process.stdout.isTTY) {
     console.log(`${color.cyan("☄")} ${color.bold("Comet")}`);
     return;
   }
 
+  const corner = color.dim("┌");
+  const pipe = color.dim("│");
+  const title = cometGradient("☄ Comet");
+
   console.log("");
-  console.log(
-    renderBanner()
-      .split("\n")
-      .map((line) => `  ${line}`)
-      .join("\n")
-  );
-  console.log("");
+  console.log(`${corner} ${color.bold(title)}`);
+  console.log(pipe);
 };
 
 export interface CometSpinner {
