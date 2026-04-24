@@ -11,9 +11,21 @@ import { runCommitFlow } from "./core/run-commit-flow.js";
 import { logger } from "./ui/logger.js";
 
 const subcommandNames = new Set(["commit", "preview", "config", "doctor", "init", "hook"]);
+const helpFlags = new Set(["-h", "--help"]);
+const versionFlags = new Set(["-V", "--version"]);
 
 const hasExplicitSubcommand = (argv: string[]): boolean =>
   argv.some((token) => !token.startsWith("-") && subcommandNames.has(token));
+
+const hasBuiltInMetaFlag = (argv: string[]): boolean =>
+  argv.some((token) => helpFlags.has(token) || versionFlags.has(token));
+
+const createRuntimeOptionProgram = (): Command => {
+  const program = new Command();
+  program.name("comet");
+  addRuntimeOptions(program);
+  return program;
+};
 
 const createProgram = (): Command => {
   const program = new Command();
@@ -37,19 +49,24 @@ const createProgram = (): Command => {
 
 const main = async (): Promise<void> => {
   try {
-    const program = createProgram();
     const argv = process.argv.slice(2);
-    await program.parseAsync(process.argv);
+    const useDefaultCommitFlow = !hasExplicitSubcommand(argv) && !hasBuiltInMetaFlag(argv);
 
-    if (!hasExplicitSubcommand(argv)) {
+    if (useDefaultCommitFlow) {
+      const runtimeProgram = createRuntimeOptionProgram();
+      runtimeProgram.parseOptions(argv);
       p.intro("Comet");
-      const overrides = collectRuntimeOverrides(program);
+      const overrides = collectRuntimeOverrides(runtimeProgram);
       await runCommitFlow({
         ...overrides,
         previewOnly: overrides.previewOnly ?? false,
       });
       p.outro("Done.");
+      return;
     }
+
+    const program = createProgram();
+    await program.parseAsync(process.argv);
   } catch (error) {
     logger.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
