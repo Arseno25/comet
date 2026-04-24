@@ -308,25 +308,6 @@ feat(auth): add role-based login validation
 ✨ feat(auth): add role-based login validation
 ```
 
-## File Exclusion & Redaction
-
-**Excluded by default:**
-
-- `.env`, `.env.local`
-- Lock files: `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
-- Build output: `dist/`, `build/`, `.next/`
-- `node_modules/`, `vendor/`, `coverage/`
-
-**Redacted patterns:**
-
-- API keys
-- Bearer tokens
-- JWTs
-- Passwords
-- Database URLs
-- Private keys
-- Webhook secrets
-
 ## Workflows
 
 ### Standard
