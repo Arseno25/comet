@@ -157,16 +157,12 @@ export const cometOutro = async (success = true): Promise<void> => {
 
   if (success) {
     for (let step = 0; step < OUTRO_STEPS; step += 1) {
-      process.stdout.write(
-        `${CLEAR_LINE}\r${renderCometTrailFrame(step)} ${color.bold(color.cyan("Orbit complete"))}`
-      );
+      process.stdout.write(`${CLEAR_LINE}\r${renderCometTrailFrame(step)}`);
       await sleep(OUTRO_DELAY_MS);
     }
 
     process.stdout.write(`${CLEAR_LINE}`);
-    console.log(
-      `${color.green("✦")} ${color.bold(color.cyan("Orbit complete"))} ${color.dim("trail locked")}\n`
-    );
+    console.log(`${color.green("✦")} ${color.bold(color.cyan("Orbit complete"))}\n`);
   } else {
     console.log(`${color.red("✕")} ${color.bold("Cancelled")}\n`);
   }
