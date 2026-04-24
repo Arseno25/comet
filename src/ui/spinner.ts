@@ -1,5 +1,5 @@
-import * as p from "@clack/prompts";
 import { logger } from "./logger.js";
+import { createCometSpinner } from "./animations.js";
 
 export interface SpinnerLike {
   start(message: string): void;
@@ -17,9 +17,9 @@ export const createSpinner = (): SpinnerLike => {
     };
   }
 
-  const spinner = p.spinner();
+  const cometSpinner = createCometSpinner();
   return {
-    start: (message: string) => spinner.start(message),
-    stop: (message: string) => spinner.stop(message),
+    start: (message: string) => cometSpinner.start(message),
+    stop: (message: string) => cometSpinner.stop(message, true),
   };
 };

@@ -11,6 +11,7 @@ import { editTextInEditor } from "../utils/editor.js";
 import { omitUndefined } from "../utils/object.js";
 import { printJson } from "../utils/output.js";
 import { ensureReadyRepository, generateCommitBundle } from "./generate-commit.js";
+import { cometOutro } from "../ui/animations.js";
 
 const commitAndMaybePush = async (
   message: string,
@@ -21,22 +22,26 @@ const commitAndMaybePush = async (
   logger.success("Git commit created.");
 
   if (!gitPush) {
+    cometOutro(true);
     return;
   }
 
   if (!isInteractiveTerminal()) {
     logger.warn("Git push is enabled, but push confirmation requires a TTY. Skipping push.");
+    cometOutro(true);
     return;
   }
 
   const shouldPush = await confirmGitPush();
   if (!shouldPush) {
     logger.step("Skipped git push.");
+    cometOutro(true);
     return;
   }
 
   await pushGitCommit(cwd);
   logger.success("Git push completed.");
+  cometOutro(true);
 };
 
 export const runCommitFlow = async (
@@ -83,6 +88,7 @@ export const runCommitFlow = async (
     if (overrides.json) {
       printJson(bundle);
     } else {
+      console.log();
       console.log(renderCommitPreview(bundle));
     }
 

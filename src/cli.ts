@@ -1,17 +1,19 @@
-import * as p from "@clack/prompts";
 import { Command } from "commander";
 import { registerAnalyzeCommand } from "./commands/analyze.js";
+import { registerChangelogCommand } from "./commands/changelog.js";
 import { registerCommitCommand } from "./commands/commit.js";
 import { registerConfigCommand } from "./commands/config.js";
 import { registerDoctorCommand } from "./commands/doctor.js";
 import { registerHookCommand } from "./commands/hook.js";
 import { registerInitCommand } from "./commands/init.js";
 import { registerPreviewCommand } from "./commands/preview.js";
+import { registerReleaseNotesCommand } from "./commands/release-notes.js";
 import { registerReviewCommand } from "./commands/review.js";
 import { registerSquashCommand } from "./commands/squash.js";
 import { addRuntimeOptions, collectRuntimeOverrides } from "./commands/shared.js";
 import { runCommitFlow } from "./core/run-commit-flow.js";
 import { logger } from "./ui/logger.js";
+import { cometIntro } from "./ui/animations.js";
 
 const subcommandNames = new Set([
   "commit",
@@ -23,6 +25,8 @@ const subcommandNames = new Set([
   "doctor",
   "init",
   "hook",
+  "changelog",
+  "release-notes",
 ]);
 const helpFlags = new Set(["-h", "--help"]);
 const versionFlags = new Set(["-V", "--version"]);
@@ -45,8 +49,8 @@ const createProgram = (): Command => {
 
   program
     .name("comet")
-    .description("Comet — Clean commit messages at the speed of thought.")
-    .version("0.1.0");
+    .description("Comet — Clean commit messages at the speed of light.")
+    .version("0.2.0");
 
   addRuntimeOptions(program);
 
@@ -59,6 +63,8 @@ const createProgram = (): Command => {
   registerDoctorCommand(program);
   registerInitCommand(program);
   registerHookCommand(program);
+  registerChangelogCommand(program);
+  registerReleaseNotesCommand(program);
 
   return program;
 };
@@ -71,14 +77,14 @@ const main = async (): Promise<void> => {
     if (useDefaultCommitFlow) {
       const runtimeProgram = createRuntimeOptionProgram();
       runtimeProgram.parseOptions(argv);
-      p.intro("Comet");
+      cometIntro();
       const overrides = collectRuntimeOverrides(runtimeProgram);
       const didRun = await runCommitFlow({
         ...overrides,
         previewOnly: overrides.previewOnly ?? false,
       });
       if (didRun) {
-        p.outro("Done.");
+        console.log("");
       }
       return;
     }

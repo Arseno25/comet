@@ -27,7 +27,7 @@ export const handlePromptCancel = (): never => {
 
 export const confirmGitPush = async (): Promise<boolean> => {
   const result = await p.confirm({
-    message: "Commit created. Push to remote now?",
+    message: "Push to remote now?",
     initialValue: true,
   });
 

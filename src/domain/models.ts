@@ -50,6 +50,11 @@ export interface CometConfig {
   policyRequireIssueKey: boolean;
   issueKeyPattern: string;
   policyScopeMap: Record<string, string> | null;
+  showSafeSend: boolean;
+  showAnalysis: boolean;
+  showQuality: boolean;
+  showWarnings: boolean;
+  verbose: boolean;
 }
 
 export interface GitDiffStats {

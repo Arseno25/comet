@@ -1,190 +1,85 @@
 # Comet
 
+<div align="center">
+  <img src="assets/logo.png" alt="Comet Logo" width="400"/>
+</div>
+
 [![npm package](https://img.shields.io/badge/npm-%40arseno25%2Fcomet-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@arseno25/comet)
 [![npm version](https://img.shields.io/npm/v/@arseno25/comet?logo=npm&logoColor=white)](https://www.npmjs.com/package/@arseno25/comet)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 AI-powered commit message generation for staged Git changes.
 
-Comet reads `git diff --staged`, filters noisy or sensitive files, redacts secrets, and generates clean Conventional Commit-style messages through an OpenAI-compatible provider.
-
-```bash
-npm install -g @arseno25/comet
-```
-
-The goal is simple: when you run `comet`, it should feel fast, clean, and immediately useful.
-
-## Product Docs
-
-- [Competitive Analysis](./COMPETITIVE_ANALYSIS.md)
-- [Roadmap](./ROADMAP.md)
-- [Product Backlog](./PRODUCT_BACKLOG.md)
-
-## Features
-
-- Default command runs commit generation directly without requiring an extra subcommand.
-- Consistent Conventional Commit output.
-- Support for `openai` and `openai-compatible` providers.
-- Semantic diff preprocessing that collapses format-only and rename-only noise.
-- Safe-send preview that shows what Comet is about to send to the model.
-- Global config stored in `~/.comet/config.env`.
-- Project-level overrides through `.comet.env`, `.cometrc`, or `.cometrc.json`.
-- Interactive preview before commit: accept, edit, regenerate, cancel.
-- `analyze`, `review`, and `squash` workflows for pre-commit and history cleanup.
-- JSON output modes for automation and editor integrations.
-- Public library API for programmatic usage.
-- Optional commit body/description.
-- Optional emoji by commit type.
-- Optional one-line commit mode.
-- Optional scope omission.
-- Optional `why` section.
-- Team policy support for allowed commit types, required issue keys, and scope mapping.
-- Secret redaction for tokens, passwords, database URLs, private keys, and other common sensitive patterns.
-- Default file exclusion for lockfiles, `.env`, build output, and sensitive directories.
-- `doctor --json` for machine-readable environment diagnostics.
-- `prepare-commit-msg` hook installer.
-- Optional push flow with a separate confirmation after commit.
-
 ## Install
 
-Global install:
-
 ```bash
 npm install -g @arseno25/comet
 ```
 
-Run without a permanent install:
+Run without permanent install:
 
 ```bash
 npx @arseno25/comet init
 npx @arseno25/comet
 ```
 
-Install as a dev dependency:
-
-```bash
-npm install -D @arseno25/comet
-npx comet
-```
-
 ## Requirements
 
 - Node.js 22 or newer
-- npm 11 or newer
-- Git installed and available in the terminal
-- A provider API key unless you use `local-only` mode
+- Git installed and available
+- An API key for your chosen provider
 
 ## Quick Start
 
-### 1. Set up config once
-
 ```bash
+# 1. Set up config
 comet init
-```
 
-The `init` wizard asks for:
-
-- provider
-- model
-- base URL
-- API key
-- language
-- emoji on/off
-- description/body on/off
-- default git push on/off
-
-### 2. Stage your changes
-
-```bash
+# 2. Stage changes
 git add .
+
+# 3. Generate commit
+comet
 ```
 
-### 3. Generate a commit
+## Commands
+
+### Main Command
 
 ```bash
 comet
 ```
 
-When staged changes exist, Comet will:
+Generate a commit message from staged changes, show preview, and commit if approved.
 
-1. load runtime config
-2. read the staged diff
-3. filter skipped files
-4. redact sensitive data
-5. send the safe diff to the AI provider
-6. review semantic changes, redactions, and commit quality
-6. show a commit preview
-7. ask for confirmation
-8. create the commit
-9. if `gitPush=true`, ask whether you also want to push
-
-## Default Behavior
-
-Comet is intentionally designed to behave like OpenCommit:
-
-```bash
-comet
-```
-
-That command immediately runs the commit generation flow. Help is shown only when you explicitly ask for it:
-
-```bash
-comet -h
-comet --help
-```
-
-If there are no staged changes, Comet does not spin for a long time. It exits quickly with a clear message:
-
-```txt
-No staged changes found. Run `git add .` first or enable COMET_STAGE_ALL.
-```
-
-## Command Reference
-
-### Main command
-
-```bash
-comet
-```
-
-Generate a commit message from the staged diff, show a preview, and commit if approved.
-
-### Explicit commit command
-
-```bash
-comet commit
-```
-
-Same behavior as `comet`, but more explicit.
-
-### Preview only
+### Preview
 
 ```bash
 comet preview
 comet preview --json
 ```
 
-Generate a commit message without running `git commit`.
+Generate commit message without running `git commit`.
 
-### Analyze only
+### Analyze
 
 ```bash
 comet analyze
 comet analyze --json
 ```
 
-Analyze staged changes, semantic diff groups, issue key detection, and commit quality without calling `git commit`.
+Analyze staged changes without committing.
 
-### Review staged changes
+### Review
 
 ```bash
 comet review
 comet review --json
 ```
 
-Show staged diff risks and highlights before commit generation.
+Show staged diff risks and highlights.
 
-### Generate a squash message
+### Squash
 
 ```bash
 comet squash main
@@ -193,52 +88,14 @@ comet squash main HEAD --json
 
 Generate a squash-ready commit message for a commit range.
 
-### Interactive init
-
-```bash
-comet init
-```
-
-Creates or updates the global config at:
-
-```txt
-~/.comet/config.env
-```
-
-### Config commands
-
-Set a value:
+### Config
 
 ```bash
 comet config set provider openai-compatible
-comet config set model Qwen/Qwen3-235B-A22B
-comet config set baseUrl https://api.netmind.ai/inference-api/openai/v1
+comet config set model gpt-4o-mini
 comet config set apiKey your_api_key
-comet config set gitPush true
-```
-
-Get all config values:
-
-```bash
 comet config get
-```
-
-Get a single key:
-
-```bash
-comet config get model
-comet config get gitPush
-```
-
-Unset a key:
-
-```bash
 comet config unset apiKey
-```
-
-Show the config path:
-
-```bash
 comet config path
 ```
 
@@ -249,147 +106,101 @@ comet doctor
 comet doctor --json
 ```
 
-Shows diagnostics for:
+Show environment diagnostics.
 
-- active global config
-- project config override
-- provider/model/base URL
-- whether the API key is detected
-- Git repository status
-- staged file count
-- `COMET_*` environment variable overrides
-
-### Hook management
-
-Install hook:
+### Hook
 
 ```bash
 comet hook install
-```
-
-Check hook status:
-
-```bash
 comet hook status
-```
-
-Remove hook:
-
-```bash
 comet hook uninstall
 ```
 
-The current MVP hook target is:
+Manage `prepare-commit-msg` hook.
 
-```txt
-prepare-commit-msg
+### Changelog
+
+```bash
+comet changelog
+comet changelog --from v1.0.0 --version 2.0.0
+comet changelog --json
 ```
+
+Generate formatted changelog from commit history.
+
+### Release Notes
+
+```bash
+comet release-notes v1.0.0
+comet release-notes v1.0.0 --version 2.0.0
+comet release-notes v1.0.0 --json
+```
+
+Generate release notes with contributor stats.
 
 ## Runtime Flags
 
-All of these flags can be used with `comet`, `comet commit`, or `comet preview`.
-
-### Output and formatting
+### Output
 
 ```bash
 comet --emoji
-comet --no-emoji
 comet --description
-comet --no-description
 comet --one-line
-comet --no-one-line
 comet --omit-scope
-comet --no-omit-scope
 comet --why
-comet --no-why
 ```
 
-### Provider and language
+### Provider
 
 ```bash
 comet --provider openai-compatible
-comet --model Qwen/Qwen3-235B-A22B
-comet --base-url https://api.netmind.ai/inference-api/openai/v1
+comet --model gpt-4o-mini
+comet --base-url https://api.example.com
 comet --lang en
+```
+
+### Privacy
+
+```bash
 comet --privacy-mode standard
 ```
 
-### Force output
+Options: `standard`, `strict`, `local-only`
+
+### Workflow
+
+```bash
+comet --preview
+comet --json
+comet --yes
+comet --push
+comet --no-push
+```
+
+### Force Output
 
 ```bash
 comet --type fix
 comet --scope auth
 ```
 
-### Workflow control
+## Config
 
-```bash
-comet --preview
-comet --json
-comet --push
-comet --no-push
-comet --yes
+Config is resolved in order:
+
+```
+CLI flags > environment variables > project config > global config > default
 ```
 
-Notes:
-
-- `--yes` accepts the generated commit message without preview confirmation.
-- If `gitPush=true`, Comet still asks for a separate confirmation before running `git push`.
-- In a non-interactive terminal, push confirmation is not forced and push is skipped.
-
-## Confirmations You Will See
-
-### Preview confirmation
-
-After the message is generated, you can choose:
-
-- `Yes` to commit
-- `Edit` to open an editor and adjust the message
-- `Regenerate` to ask the model again
-- `Cancel` to abort
-
-### Push confirmation
-
-If `gitPush=true`, after a successful commit Comet asks:
-
-```txt
-Commit created. Push to remote now?
-```
-
-So push never happens silently just because the config allows it.
-
-## Config Priority
-
-Config is resolved in this order:
-
-```txt
-CLI flags > environment variables > project config > global config > default config
-```
-
-That means:
-
-- CLI flags have the highest priority
-- `COMET_*` environment variables override config files
-- project config only applies to the current repository
-- global config applies across repositories
-
-## Config Locations
-
-### Global config
+### Global Config
 
 ```txt
 ~/.comet/config.env
 ```
 
-Windows example:
+### Project Override
 
-```txt
-C:\Users\Username\.comet\config.env
-```
-
-### Project override
-
-Comet looks upward from the current directory for one of these files:
+Comet looks for:
 
 ```txt
 .comet.env
@@ -397,183 +208,122 @@ Comet looks upward from the current directory for one of these files:
 .cometrc.json
 ```
 
-## Important Config Keys
-
-### Provider
+### Important Config Keys
 
 ```env
+# Provider
 COMET_PROVIDER=openai
 COMET_MODEL=gpt-4o-mini
 COMET_BASE_URL=
 COMET_API_KEY=
-COMET_CUSTOM_HEADERS=
-```
 
-### Output
-
-```env
+# Output
 COMET_LANGUAGE=en
 COMET_DESCRIPTION=true
 COMET_EMOJI=false
 COMET_ONE_LINE=false
 COMET_OMIT_SCOPE=false
 COMET_WHY=false
-COMET_MESSAGE_TEMPLATE=$msg
-```
 
-### Token limits
-
-```env
-COMET_MAX_INPUT_TOKENS=12000
-COMET_MAX_OUTPUT_TOKENS=1024
-```
-
-### Git behavior
-
-```env
+# Git
 COMET_AUTO_COMMIT=false
 COMET_GIT_PUSH=false
 COMET_STAGE_ALL=false
-```
 
-### Security
-
-```env
+# Security
 COMET_REDACT_SECRETS=true
 COMET_PRIVACY_MODE=standard
 COMET_EXCLUDE_FILES=
+
+# Panel Visibility
+COMET_SHOW_SAFE_SEND=false
+COMET_SHOW_ANALYSIS=false
+COMET_SHOW_QUALITY=false
+COMET_SHOW_WARNINGS=false
+COMET_VERBOSE=false
 ```
 
-### Team policy
-
-```env
-COMET_POLICY_ALLOWED_TYPES=["feat","fix","docs","refactor","chore"]
-COMET_POLICY_REQUIRE_ISSUE_KEY=false
-COMET_ISSUE_KEY_PATTERN=[A-Z][A-Z0-9]+-\d+
-COMET_POLICY_SCOPE_MAP={"src/payments":"billing"}
-```
-
-## Example OpenAI-Compatible Config
-
-```env
-COMET_PROVIDER=openai-compatible
-COMET_MODEL=Qwen/Qwen3-235B-A22B
-COMET_BASE_URL=https://api.netmind.ai/inference-api/openai/v1
-COMET_API_KEY=your_api_key
-
-COMET_LANGUAGE=en
-COMET_DESCRIPTION=true
-COMET_EMOJI=false
-COMET_GIT_PUSH=true
-```
-
-## Output Format Examples
+## Output Format
 
 ### Standard
 
-```txt
+```
 feat(auth): add role-based login validation
 ```
 
-### With body
+### With Body
 
-```txt
+```
 feat(auth): add role-based login validation
 
 - validate user roles during login
 - protect dashboard routes with session guard
 ```
 
-### One line
+### One Line
 
-```txt
+```
 feat(auth): add role-based login validation
 ```
 
-### With emoji
+### With Emoji
 
-```txt
+```
 ✨ feat(auth): add role-based login validation
 ```
 
-### Without scope
+## File Exclusion & Redaction
 
-```txt
-feat: add role-based login validation
-```
+**Excluded by default:**
 
-## File Exclusion and Secret Redaction
+- `.env`, `.env.local`
+- Lock files: `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
+- Build output: `dist/`, `build/`, `.next/`
+- `node_modules/`, `vendor/`, `coverage/`
 
-By default, Comet does not send certain sensitive or noisy files to the model, including:
-
-- `.env`
-- `.env.local`
-- `package-lock.json`
-- `pnpm-lock.yaml`
-- `yarn.lock`
-- `dist/`
-- `build/`
-- `.next/`
-- `node_modules/`
-- `coverage/`
-
-Comet also redacts common sensitive patterns such as:
+**Redacted patterns:**
 
 - API keys
-- bearer tokens
+- Bearer tokens
 - JWTs
-- passwords
-- database URLs
-- private keys
-- webhook secrets
+- Passwords
+- Database URLs
+- Private keys
+- Webhook secrets
 
-## Typical Workflows
+## Workflows
 
-### Standard workflow
+### Standard
 
 ```bash
 git add .
 comet
 ```
 
-### Preview only
+### Preview Only
 
 ```bash
 git add .
 comet --preview
 ```
 
-### Automation-friendly JSON
+### JSON Output
 
 ```bash
 git add .
-comet analyze --json
 comet preview --json
+comet analyze --json
 comet doctor --json
 ```
 
-### Force type and scope
+### Force Type/Scope
 
 ```bash
 git add .
 comet --type fix --scope auth
 ```
 
-### Commit without body
-
-```bash
-git add .
-comet --no-description
-```
-
-### One-line commit
-
-```bash
-git add .
-comet --one-line
-```
-
-### Push after commit, but still ask for confirmation
+### Auto Push
 
 ```bash
 comet config set gitPush true
@@ -582,8 +332,6 @@ comet
 ```
 
 ## Library API
-
-Comet can also be used programmatically:
 
 ```ts
 import { analyzeStagedChanges, generateCommitBundle } from "@arseno25/comet";
@@ -594,9 +342,7 @@ const bundle = await generateCommitBundle();
 
 ## Troubleshooting
 
-### `No staged changes found`
-
-This means nothing is staged yet.
+### No staged changes
 
 ```bash
 git add .
@@ -609,30 +355,18 @@ Or enable:
 comet config set stageAll true
 ```
 
-### `Missing API key`
-
-Check whether the key is actually stored:
+### Missing API key
 
 ```bash
 comet config get apiKey
 comet doctor
-```
-
-Set it again if needed:
-
-```bash
 comet config set apiKey your_api_key
 ```
 
-### I want to see the currently active config
+### Check active config
 
 ```bash
 comet doctor
-```
-
-### I want to know which config file is being used
-
-```bash
 comet config path
 ```
 

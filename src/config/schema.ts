@@ -29,6 +29,11 @@ export const configSchema = z.object({
   policyRequireIssueKey: z.boolean().default(false),
   issueKeyPattern: z.string().min(1).default("[A-Z][A-Z0-9]+-\\d+"),
   policyScopeMap: z.record(z.string(), z.string()).nullable().default(null),
+  showSafeSend: z.boolean().default(false),
+  showAnalysis: z.boolean().default(false),
+  showQuality: z.boolean().default(false),
+  showWarnings: z.boolean().default(false),
+  verbose: z.boolean().default(false),
 });
 
 export const generatedCommitSchema = z.object({
