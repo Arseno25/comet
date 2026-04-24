@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.comet/
+.DS_Store
+Thumbs.db
+*.log
