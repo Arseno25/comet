@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { Command } from "commander";
 import { registerAnalyzeCommand } from "./commands/analyze.js";
 import { registerChangelogCommand } from "./commands/changelog.js";
@@ -44,13 +47,27 @@ const createRuntimeOptionProgram = (): Command => {
   return program;
 };
 
+const readPackageVersion = (): string => {
+  try {
+    const packageJsonPath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "package.json"
+    );
+    const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: string };
+    return parsed.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+};
+
 const createProgram = (): Command => {
   const program = new Command();
 
   program
     .name("comet")
     .description("Comet — Clean commit messages at the speed of light.")
-    .version("0.2.0");
+    .version(readPackageVersion());
 
   addRuntimeOptions(program);
 

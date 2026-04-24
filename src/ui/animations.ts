@@ -1,98 +1,165 @@
+import gradient from "gradient-string";
+import logUpdate from "log-update";
+import ora, { type Ora } from "ora";
 import color from "yoctocolors";
 
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const CLEAR_LINE = "\r" + " ".repeat(80) + "\r";
-const COMET_BAR = "─".repeat(26);
-const OUTRO_DELAY_MS = 42;
-const OUTRO_STEPS = 14;
+const COMET_GRADIENT_STOPS = ["#06b6d4", "#8b5cf6", "#f472b6"];
+const COMET_BANNER_WIDTH = 28;
+const OUTRO_DELAY_MS = 38;
+const OUTRO_STEPS = 16;
 
-const colorSpinnerFrame = (frame: string, index: number): string =>
-  index % 2 === 0 ? color.cyan(frame) : color.magenta(frame);
+const cometGradient = gradient(COMET_GRADIENT_STOPS);
 
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
-const centerInBanner = (plainText: string, renderedText: string, width: number): string => {
-  if (plainText.length >= width) {
-    return renderedText;
-  }
+const getTerminalWidth = (): number =>
+  Math.max(40, Math.min(process.stdout.columns ?? 80, 120));
 
-  const leftPadding = Math.floor((width - plainText.length) / 2);
-  return `${" ".repeat(leftPadding)}${renderedText}`;
+const centerText = (text: string, width: number): string => {
+  const pad = Math.max(0, Math.floor((width - text.length) / 2));
+  return `${" ".repeat(pad)}${text}`;
 };
 
-const renderCometTrailFrame = (step: number): string => {
-  const track = Array.from({ length: OUTRO_STEPS + 6 }, () => " ");
-  const headIndex = Math.min(step, track.length - 1);
-  const trail = [
-    { offset: -3, char: color.dim("·") },
-    { offset: -2, char: color.blue("·") },
-    { offset: -1, char: color.yellow("✦") },
+const renderBanner = (): string => {
+  const bar = "─".repeat(COMET_BANNER_WIDTH);
+  const title = "☄  Comet";
+  return [
+    color.dim(bar),
+    cometGradient(centerText(title, COMET_BANNER_WIDTH)),
+    color.dim(bar),
+  ].join("\n");
+};
+
+export const cometIntro = (): void => {
+  if (!process.stdout.isTTY) {
+    console.log(`${color.cyan("☄")} ${color.bold("Comet")}`);
+    return;
+  }
+
+  console.log("");
+  console.log(
+    renderBanner()
+      .split("\n")
+      .map((line) => `  ${line}`)
+      .join("\n")
+  );
+  console.log("");
+};
+
+export interface CometSpinner {
+  start(message: string): void;
+  update(message: string): void;
+  succeed(message: string): void;
+  fail(message: string): void;
+  stop(message?: string, success?: boolean): void;
+}
+
+export const createCometSpinner = (): CometSpinner => {
+  let instance: Ora | null = null;
+
+  const ensure = (message: string): Ora => {
+    instance ??= ora({
+      text: color.bold(cometGradient(message)),
+      spinner: "dots",
+      color: "cyan",
+      hideCursor: true,
+    });
+    return instance;
+  };
+
+  return {
+    start: (message) => {
+      if (!process.stdout.isTTY) {
+        console.log(`${color.cyan("•")} ${color.dim(message)}`);
+        return;
+      }
+      ensure(message).start();
+    },
+    update: (message) => {
+      if (instance) instance.text = color.bold(cometGradient(message));
+    },
+    succeed: (message) => {
+      if (!process.stdout.isTTY) {
+        console.log(`${color.green("✦")} ${message}`);
+        instance = null;
+        return;
+      }
+      ensure(message).succeed(`${color.green("✦")} ${color.bold(message)}`);
+      instance = null;
+    },
+    fail: (message) => {
+      if (!process.stdout.isTTY) {
+        console.log(`${color.red("✕")} ${message}`);
+        instance = null;
+        return;
+      }
+      ensure(message).fail(`${color.red("✕")} ${color.bold(message)}`);
+      instance = null;
+    },
+    stop: (message = "", success = true) => {
+      if (!instance) {
+        if (message) console.log(`${success ? color.green("✦") : color.red("✕")} ${message}`);
+        return;
+      }
+      if (success) {
+        instance.succeed(
+          message ? `${color.green("✦")} ${color.bold(message)}` : undefined
+        );
+      } else {
+        instance.fail(
+          message ? `${color.red("✕")} ${color.bold(message)}` : undefined
+        );
+      }
+      instance = null;
+    },
+  };
+};
+
+const renderCometTrail = (step: number): string => {
+  const width = Math.min(getTerminalWidth() - 4, OUTRO_STEPS + 8);
+  const track = Array.from({ length: width }, () => " ");
+  const head = Math.min(step, width - 1);
+
+  const segments: Array<{ offset: number; char: string }> = [
+    { offset: -4, char: color.dim("·") },
+    { offset: -3, char: color.blue("·") },
+    { offset: -2, char: cometGradient("✦") },
+    { offset: -1, char: color.yellow("✧") },
   ];
 
-  for (const segment of trail) {
-    const index = headIndex + segment.offset;
+  for (const segment of segments) {
+    const index = head + segment.offset;
     if (index >= 0 && index < track.length) {
       track[index] = segment.char;
     }
   }
 
-  track[headIndex] = color.bold(color.cyan("☄"));
+  track[head] = color.bold(cometGradient("☄"));
   return track.join("");
 };
 
-export const cometIntro = (): void => {
+export const cometOutro = async (success = true): Promise<void> => {
   if (!process.stdout.isTTY) {
-    console.log(`${color.bold(color.cyan("☄"))} ${color.bold("Comet")}`);
+    console.log(success ? "✦ Done." : "✕ Cancelled.");
     return;
   }
 
-  const titleText = "☄ Comet";
-  const renderedTitle = `${color.bold(color.cyan("☄"))} ${color.bold(color.white("Comet"))}`;
+  if (!success) {
+    console.log(`${color.red("✕")} ${color.bold("Cancelled")}\n`);
+    return;
+  }
 
-  console.log("");
-  console.log(`  ${color.dim(COMET_BAR)}`);
-  console.log(`  ${centerInBanner(titleText, renderedTitle, COMET_BAR.length)}`);
-  console.log(`  ${color.dim(COMET_BAR)}`);
-  console.log("");
-};
+  for (let step = 0; step < OUTRO_STEPS; step += 1) {
+    logUpdate(renderCometTrail(step));
+    await sleep(OUTRO_DELAY_MS);
+  }
 
-export const createCometSpinner = () => {
-  let frame = 0;
-  let interval: NodeJS.Timeout | null = null;
-
-  return {
-    start: (message: string) => {
-      if (!process.stdout.isTTY) {
-        console.log(`${color.cyan("•")} ${color.dim(message)}`);
-        return;
-      }
-
-      const firstFrame = SPINNER_FRAMES[0] ?? "•";
-      process.stdout.write(`\r${colorSpinnerFrame(firstFrame, 0)} ${color.bold(color.cyan(message))}`);
-
-      interval = setInterval(() => {
-        frame = (frame + 1) % SPINNER_FRAMES.length;
-        const currentFrame = SPINNER_FRAMES[frame] ?? "•";
-        process.stdout.write(
-          `${CLEAR_LINE}\r${colorSpinnerFrame(currentFrame, frame)} ${color.bold(color.cyan(message))}`
-        );
-      }, 95);
-    },
-    stop: (finalMessage: string, success = true) => {
-      if (interval) clearInterval(interval);
-      interval = null;
-
-      if (!process.stdout.isTTY) {
-        const icon = success ? color.green("✦") : color.red("✕");
-        console.log(`${icon} ${finalMessage}`);
-        return;
-      }
-
-      process.stdout.write(`${CLEAR_LINE}`);
-      const icon = success ? color.green("✦") : color.red("✕");
-      console.log(`${icon} ${finalMessage}`);
-    },
-  };
+  logUpdate.clear();
+  logUpdate.done();
+  console.log(
+    `${color.green("✦")} ${color.bold(cometGradient("Orbit complete"))}\n`
+  );
 };
 
 export const COMET_ICONS = {
@@ -117,6 +184,7 @@ export const COMET_COLORS = {
   muted: (text: string) => color.dim(text),
   dim: (text: string) => color.dim(color.white(text)),
   bold: (text: string) => color.bold(text),
+  gradient: (text: string) => cometGradient(text),
 } as const;
 
 export const COMET_PANEL_STYLES = {
@@ -135,13 +203,13 @@ export type CometStatusTone = "ok" | "warn" | "fail" | "info";
 export const renderStatusBadge = (status: CometStatusTone): string => {
   switch (status) {
     case "ok":
-      return COMET_COLORS.success("OK");
+      return COMET_COLORS.success("●  OK  ");
     case "warn":
-      return COMET_COLORS.warning("WARN");
+      return COMET_COLORS.warning("●  WARN");
     case "fail":
-      return COMET_COLORS.error("FAIL");
+      return COMET_COLORS.error("●  FAIL");
     default:
-      return COMET_COLORS.secondary("INFO");
+      return COMET_COLORS.secondary("●  INFO");
   }
 };
 
@@ -157,24 +225,5 @@ export const renderBullet = (
       return COMET_COLORS.warning("◇");
     default:
       return COMET_COLORS.muted("◇");
-  }
-};
-
-export const cometOutro = async (success = true): Promise<void> => {
-  if (!process.stdout.isTTY) {
-    console.log(success ? "✦ Done." : "✕ Cancelled.");
-    return;
-  }
-
-  if (success) {
-    for (let step = 0; step < OUTRO_STEPS; step += 1) {
-      process.stdout.write(`${CLEAR_LINE}\r${renderCometTrailFrame(step)}`);
-      await sleep(OUTRO_DELAY_MS);
-    }
-
-    process.stdout.write(`${CLEAR_LINE}`);
-    console.log(`${color.green("✦")} ${color.bold(color.cyan("Orbit complete"))}\n`);
-  } else {
-    console.log(`${color.red("✕")} ${color.bold("Cancelled")}\n`);
   }
 };

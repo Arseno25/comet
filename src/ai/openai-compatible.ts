@@ -14,6 +14,25 @@ export class OpenAICompatibleProvider {
       throw new Error("Missing API key. Configure COMET_API_KEY or use privacy mode local-only.");
     }
 
+    if (input.baseUrl) {
+      const parsed = (() => {
+        try {
+          return new URL(input.baseUrl);
+        } catch {
+          throw new Error(`Invalid baseUrl: "${input.baseUrl}".`);
+        }
+      })();
+
+      const isLocal =
+        parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "::1";
+
+      if (parsed.protocol !== "https:" && !isLocal) {
+        throw new Error(
+          `Refusing to send API key over insecure baseUrl "${input.baseUrl}". Use https or a loopback host.`
+        );
+      }
+    }
+
     const client = new OpenAI({
       apiKey: input.apiKey,
       baseURL: input.baseUrl ?? undefined,
