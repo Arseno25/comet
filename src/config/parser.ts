@@ -26,6 +26,11 @@ const keyMap = {
   policyRequireIssueKey: "COMET_POLICY_REQUIRE_ISSUE_KEY",
   issueKeyPattern: "COMET_ISSUE_KEY_PATTERN",
   policyScopeMap: "COMET_POLICY_SCOPE_MAP",
+  showSafeSend: "COMET_SHOW_SAFE_SEND",
+  showAnalysis: "COMET_SHOW_ANALYSIS",
+  showQuality: "COMET_SHOW_QUALITY",
+  showWarnings: "COMET_SHOW_WARNINGS",
+  verbose: "COMET_VERBOSE",
 } as const;
 
 export type ConfigKey = keyof typeof keyMap;
@@ -62,6 +67,11 @@ const booleanKeys = new Set<ConfigKey>([
   "stageAll",
   "redactSecrets",
   "policyRequireIssueKey",
+  "showSafeSend",
+  "showAnalysis",
+  "showQuality",
+  "showWarnings",
+  "verbose",
 ]);
 
 const numberKeys = new Set<ConfigKey>(["maxInputTokens", "maxOutputTokens"]);

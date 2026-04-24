@@ -86,6 +86,42 @@ export const registerInitCommand = (program: Command): void => {
         process.exit(0);
       }
 
+      const showSafeSend = await p.confirm({
+        message: "Show Safe Send panel by default?",
+        initialValue: false,
+      });
+      if (p.isCancel(showSafeSend)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const showAnalysis = await p.confirm({
+        message: "Show Analysis panel by default?",
+        initialValue: false,
+      });
+      if (p.isCancel(showAnalysis)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const showQuality = await p.confirm({
+        message: "Show Quality panel by default?",
+        initialValue: false,
+      });
+      if (p.isCancel(showQuality)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
+      const showWarnings = await p.confirm({
+        message: "Show Warnings panel by default?",
+        initialValue: false,
+      });
+      if (p.isCancel(showWarnings)) {
+        p.cancel("Init cancelled.");
+        process.exit(0);
+      }
+
       const privacyMode = provider === "local-only" ? "local-only" : "standard";
 
       await setManyGlobalConfigValues([
@@ -98,6 +134,10 @@ export const registerInitCommand = (program: Command): void => {
         { key: "description", value: String(description) },
         { key: "gitPush", value: String(gitPush) },
         { key: "privacyMode", value: privacyMode },
+        { key: "showSafeSend", value: String(showSafeSend) },
+        { key: "showAnalysis", value: String(showAnalysis) },
+        { key: "showQuality", value: String(showQuality) },
+        { key: "showWarnings", value: String(showWarnings) },
       ]);
 
       logger.success("Global config initialized.");

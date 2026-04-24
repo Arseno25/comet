@@ -1,14 +1,24 @@
 # Comet
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/arseno25/comet/main/assets/logo.png" alt="Comet Logo" width="400"/>
+  <img src="./assets/logo.png" alt="Comet Logo" width="400" />
 </div>
 
-[![npm package](https://img.shields.io/badge/npm-%40arseno25%2Fcomet-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/@arseno25/comet)
-[![npm version](https://img.shields.io/npm/v/@arseno25/comet?logo=npm&logoColor=white)](https://www.npmjs.com/package/@arseno25/comet)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+<div align="center">
+  <p>
+    <a href="https://www.npmjs.com/package/@arseno25/comet">
+      <img src="https://img.shields.io/badge/npm-%40arseno25%2Fcomet-CB3837?logo=npm&logoColor=white" alt="npm package" />
+    </a>
+    <a href="https://www.npmjs.com/package/@arseno25/comet">
+      <img src="https://img.shields.io/npm/v/@arseno25/comet?logo=npm&logoColor=white" alt="npm version" />
+    </a>
+    <a href="./LICENSE">
+      <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license MIT" />
+    </a>
+  </p>
 
-AI-powered commit message generation for staged Git changes.
+  <p>AI-powered commit message generation for staged Git changes.</p>
+</div>
 
 ## Install
 
@@ -41,6 +51,13 @@ git add .
 # 3. Generate commit
 comet
 ```
+
+`comet init` now walks through provider setup, output preferences, push behavior, and default panel visibility for:
+
+- `Safe Send`
+- `Analysis`
+- `Quality`
+- `Warnings`
 
 ## Commands
 
@@ -107,6 +124,14 @@ comet doctor --json
 ```
 
 Show environment diagnostics.
+
+### Init
+
+```bash
+comet init
+```
+
+Create or update the global Comet config with interactive prompts for provider, model, API key, language, output defaults, push behavior, and panel visibility.
 
 ### Hook
 
@@ -242,6 +267,17 @@ COMET_SHOW_QUALITY=false
 COMET_SHOW_WARNINGS=false
 COMET_VERBOSE=false
 ```
+
+### Panel Visibility
+
+These values control which extra panels appear in the commit preview:
+
+- `COMET_SHOW_SAFE_SEND`: show included files, skipped files, and redaction summary
+- `COMET_SHOW_ANALYSIS`: show inferred type, scope, confidence, rationale, and issue key
+- `COMET_SHOW_QUALITY`: show quality score, suggestions, and warnings for the generated commit
+- `COMET_SHOW_WARNINGS`: show runtime warnings such as fallback generation or token truncation
+
+You can set them during `comet init` or later with `comet config set`.
 
 ## Output Format
 
