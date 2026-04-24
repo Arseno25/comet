@@ -31,9 +31,6 @@ export const renderList = (
   tone: "default" | "accent" | "success" | "warning" = "default"
 ): string[] => items.map((item) => `${renderBullet(tone)} ${item}`);
 
-const renderFileList = (items: string[]): string[] =>
-  items.map((item) => `${COMET_COLORS.accent("✦")} ${COMET_COLORS.bold(item)}`);
-
 const renderPanelStack = (panels: string[]): string => {
   if (panels.length <= 1) {
     return panels.join("\n");
