@@ -129,6 +129,20 @@ export const setGlobalConfigValue = async (key: ConfigKey, rawValue: string): Pr
   return filePath;
 };
 
+export const setManyGlobalConfigValues = async (
+  entries: Array<{ key: ConfigKey; value: string }>
+): Promise<string> => {
+  const filePath = await ensureGlobalConfigFile();
+  const current = await readGlobalConfig();
+
+  for (const entry of entries) {
+    current[entry.key] = parseScalarValue(entry.key, entry.value) as never;
+  }
+
+  await writeFile(filePath, serializeConfig(current), "utf8");
+  return filePath;
+};
+
 export const unsetGlobalConfigValue = async (key: ConfigKey): Promise<string> => {
   const filePath = await ensureGlobalConfigFile();
   const current = await readGlobalConfig();

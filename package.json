@@ -2,14 +2,26 @@
   "name": "@arseno/comet",
   "version": "0.1.0",
   "description": "AI commit message assistant with secure diff redaction and modern terminal UX.",
+  "author": "Arseno Kalam",
   "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arseno25/comet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arseno25/comet/issues"
+  },
+  "homepage": "https://github.com/arseno25/comet#readme",
   "bin": {
     "comet": "dist/cli.js"
   },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
@@ -20,7 +32,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "npm run check"
   },
   "keywords": [
     "cli",

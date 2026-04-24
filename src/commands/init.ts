@@ -1,17 +1,7 @@
 import * as p from "@clack/prompts";
 import type { Command } from "commander";
-import { ensureGlobalConfigFile, setGlobalConfigValue } from "../config/loader.js";
-import { resolveConfigKeyName } from "../config/parser.js";
+import { ensureGlobalConfigFile, setManyGlobalConfigValues } from "../config/loader.js";
 import { logger } from "../ui/logger.js";
-
-const writeInitValue = async (keyName: string, value: string): Promise<void> => {
-  const key = resolveConfigKeyName(keyName);
-  if (!key) {
-    throw new Error(`Unknown config key: ${keyName}`);
-  }
-
-  await setGlobalConfigValue(key, value);
-};
 
 export const registerInitCommand = (program: Command): void => {
   program
@@ -89,15 +79,15 @@ export const registerInitCommand = (program: Command): void => {
 
       const privacyMode = provider === "local-only" ? "local-only" : "standard";
 
-      await Promise.all([
-        writeInitValue("provider", provider === "local-only" ? "openai" : provider),
-        writeInitValue("model", model),
-        writeInitValue("baseUrl", baseUrl),
-        writeInitValue("apiKey", apiKey),
-        writeInitValue("language", language),
-        writeInitValue("emoji", String(emoji)),
-        writeInitValue("description", String(description)),
-        writeInitValue("privacyMode", privacyMode),
+      await setManyGlobalConfigValues([
+        { key: "provider", value: provider === "local-only" ? "openai" : provider },
+        { key: "model", value: model },
+        { key: "baseUrl", value: baseUrl },
+        { key: "apiKey", value: apiKey },
+        { key: "language", value: language },
+        { key: "emoji", value: String(emoji) },
+        { key: "description", value: String(description) },
+        { key: "privacyMode", value: privacyMode },
       ]);
 
       logger.success("Global config initialized.");
