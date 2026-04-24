@@ -32,13 +32,13 @@ export const renderList = (
 ): string[] => items.map((item) => `${renderBullet(tone)} ${item}`);
 
 const formatStats = (bundle: GeneratedCommitBundle): string =>
-  [
+  ([
     ["branch", bundle.context.branch],
     ["files", String(bundle.context.stats.filesChanged)],
     ["insertions", String(bundle.context.stats.insertions)],
     ["deletions", String(bundle.context.stats.deletions)],
     ["source", bundle.source],
-  ]
+  ] satisfies Array<[string, string]>)
     .map(([label, value]) => `${COMET_COLORS.muted(label)} ${value}`)
     .join("  ");
 

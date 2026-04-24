@@ -3,9 +3,33 @@ import color from "yoctocolors";
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const CLEAR_LINE = "\r" + " ".repeat(80) + "\r";
 const COMET_BAR = "─".repeat(26);
+const OUTRO_DELAY_MS = 42;
+const OUTRO_STEPS = 14;
 
 const colorSpinnerFrame = (frame: string, index: number): string =>
   index % 2 === 0 ? color.cyan(frame) : color.magenta(frame);
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const renderCometTrailFrame = (step: number): string => {
+  const track = Array.from({ length: OUTRO_STEPS + 6 }, () => " ");
+  const headIndex = Math.min(step, track.length - 1);
+  const trail = [
+    { offset: -3, char: color.dim("·") },
+    { offset: -2, char: color.blue("·") },
+    { offset: -1, char: color.yellow("✦") },
+  ];
+
+  for (const segment of trail) {
+    const index = headIndex + segment.offset;
+    if (index >= 0 && index < track.length) {
+      track[index] = segment.char;
+    }
+  }
+
+  track[headIndex] = color.bold(color.cyan("☄"));
+  return track.join("");
+};
 
 export const cometIntro = (): void => {
   if (!process.stdout.isTTY) {
@@ -125,14 +149,24 @@ export const renderBullet = (
   }
 };
 
-export const cometOutro = (success = true): void => {
+export const cometOutro = async (success = true): Promise<void> => {
   if (!process.stdout.isTTY) {
     console.log(success ? "✦ Done." : "✕ Cancelled.");
     return;
   }
 
   if (success) {
-    console.log(`${color.green("✦")} ${color.bold(color.cyan("Orbit complete"))}\n`);
+    for (let step = 0; step < OUTRO_STEPS; step += 1) {
+      process.stdout.write(
+        `${CLEAR_LINE}\r${renderCometTrailFrame(step)} ${color.bold(color.cyan("Orbit complete"))}`
+      );
+      await sleep(OUTRO_DELAY_MS);
+    }
+
+    process.stdout.write(`${CLEAR_LINE}`);
+    console.log(
+      `${color.green("✦")} ${color.bold(color.cyan("Orbit complete"))} ${color.dim("trail locked")}\n`
+    );
   } else {
     console.log(`${color.red("✕")} ${color.bold("Cancelled")}\n`);
   }

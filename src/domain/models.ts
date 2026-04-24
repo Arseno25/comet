@@ -141,6 +141,7 @@ export interface GenerateCommitInput {
   diff: string;
   maxInputTokens: number;
   maxOutputTokens: number;
+  regenerationAttempt?: number;
 }
 
 export interface RuntimeOverrides {

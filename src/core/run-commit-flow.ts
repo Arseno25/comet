@@ -7,7 +7,6 @@ import { logger } from "../ui/logger.js";
 import { renderCommitPreview } from "../ui/panels.js";
 import { chooseCommitAction, confirmGitPush, handlePromptCancel } from "../ui/prompts.js";
 import { createSpinner, isInteractiveTerminal } from "../ui/spinner.js";
-import { editTextInEditor } from "../utils/editor.js";
 import { omitUndefined } from "../utils/object.js";
 import { printJson } from "../utils/output.js";
 import { ensureReadyRepository, generateCommitBundle } from "./generate-commit.js";
@@ -22,26 +21,26 @@ const commitAndMaybePush = async (
   logger.success("Git commit created.");
 
   if (!gitPush) {
-    cometOutro(true);
+    await cometOutro(true);
     return;
   }
 
   if (!isInteractiveTerminal()) {
     logger.warn("Git push is enabled, but push confirmation requires a TTY. Skipping push.");
-    cometOutro(true);
+    await cometOutro(true);
     return;
   }
 
   const shouldPush = await confirmGitPush();
   if (!shouldPush) {
     logger.step("Skipped git push.");
-    cometOutro(true);
+    await cometOutro(true);
     return;
   }
 
   await pushGitCommit(cwd);
   logger.success("Git push completed.");
-  cometOutro(true);
+  await cometOutro(true);
 };
 
 export const runCommitFlow = async (
@@ -74,11 +73,17 @@ export const runCommitFlow = async (
     return false;
   }
 
+  let regenerationAttempt = 0;
+  let previousMessage: string | null = null;
+
   while (true) {
     const spinner = createSpinner();
     spinner.start("Analyzing staged diff and generating commit message");
 
-    const bundle = await generateCommitBundle(overrides, cwd);
+    const bundle = await generateCommitBundle(overrides, cwd, {
+      regenerationAttempt,
+      previousMessage,
+    });
     spinner.stop("Commit message ready");
 
     if (bundle.truncated) {
@@ -112,18 +117,10 @@ export const runCommitFlow = async (
     }
 
     if (action === "regenerate") {
+      regenerationAttempt += 1;
+      previousMessage = bundle.formattedMessage;
+      logger.step("Generating a new commit message alternative.");
       continue;
-    }
-
-    if (action === "edit") {
-      const editedMessage = await editTextInEditor(bundle.formattedMessage);
-      if (!editedMessage) {
-        logger.warn("Edited commit message was empty. Returning to preview.");
-        continue;
-      }
-
-      await commitAndMaybePush(editedMessage, bundle.config.gitPush, cwd);
-      return true;
     }
 
     await commitAndMaybePush(bundle.formattedMessage, bundle.config.gitPush, cwd);

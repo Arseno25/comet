@@ -1,6 +1,11 @@
 import type { CommitAnalysis, CometConfig, GitDiffContext } from "../domain/models.js";
 import { buildConventionalCommitInstructions } from "./modules/conventional-commit.js";
 
+export interface PromptBuildOptions {
+  regenerationAttempt?: number;
+  previousMessage?: string | null;
+}
+
 const estimateCharBudget = (maxTokens: number): number => Math.max(maxTokens * 4, 2000);
 
 export const truncateDiffToBudget = (diff: string, maxTokens: number): { diff: string; truncated: boolean } => {
@@ -21,9 +26,11 @@ export const truncateDiffToBudget = (diff: string, maxTokens: number): { diff: s
 export const createPrompt = (
   config: CometConfig,
   context: GitDiffContext,
-  analysis: CommitAnalysis
+  analysis: CommitAnalysis,
+  options: PromptBuildOptions = {}
 ): { prompt: string; payload: string; truncated: boolean } => {
   const instructions = buildConventionalCommitInstructions(config.policyAllowedTypes);
+  const regenerationAttempt = options.regenerationAttempt ?? 0;
   const privacyPayload =
     config.privacyMode === "strict"
       ? [
@@ -51,6 +58,20 @@ export const createPrompt = (
     `Rationale: ${analysis.rationale.join(" | ") || "none"}`,
     `Redactions: ${context.redactionReport.totalMatches}`,
     `Skipped files: ${context.skippedFiles.length || 0}`,
+    `Generation attempt: ${regenerationAttempt + 1}`,
+    "",
+    ...(regenerationAttempt > 0
+      ? [
+          "Regeneration request:",
+          "Generate a materially different commit message from the previous attempt.",
+          `Previous message: ${options.previousMessage ?? "none"}`,
+          "",
+        ]
+      : []),
+    "Commit consistency requirements:",
+    "- Prefer a specific subsystem or behavior over generic wording.",
+    "- Keep the subject short and production-ready.",
+    "- Use body lines only for meaningful supporting detail.",
     "",
     "Semantic diff:",
     diffBudget.diff,

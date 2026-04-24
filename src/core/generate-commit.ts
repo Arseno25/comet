@@ -1,5 +1,5 @@
 import { createCommitAnalysis } from "../analyzer/diff-summary.js";
-import { reviewDiffRisk, reviewGeneratedCommit } from "../analyzer/quality-review.js";
+import { hasGenericSubject, reviewDiffRisk, reviewGeneratedCommit } from "../analyzer/quality-review.js";
 import { createLocalFallbackCommit } from "../ai/local-fallback.js";
 import { createProvider } from "../ai/provider.js";
 import { loadConfig } from "../config/loader.js";
@@ -30,6 +30,11 @@ export interface GeneratedCommitBundle {
   truncated: boolean;
   source: "provider" | "local-fallback";
   warnings: string[];
+}
+
+interface BundleGenerationOptions {
+  regenerationAttempt?: number;
+  previousMessage?: string | null;
 }
 
 const applyGeneratedOverrides = (
@@ -68,22 +73,90 @@ const toConfigOverrides = (overrides: RuntimeOverrides): Partial<CometConfig> =>
 const ensureMessageIsUsable = (
   commit: GeneratedCommit,
   analysis: ReturnType<typeof createCommitAnalysis>,
-  context: GitDiffContext
+  context: GitDiffContext,
+  regenerationAttempt = 0
 ): GeneratedCommit => {
   if (commit.subject.trim()) {
     return commit;
   }
 
-  return createLocalFallbackCommit(analysis, context);
+  return createLocalFallbackCommit(analysis, context, regenerationAttempt);
+};
+
+const normalizeWhitespace = (value: string): string => value.replace(/\s+/g, " ").trim();
+
+const stripCommitPrefix = (value: string): string =>
+  value.replace(/^[a-z]+(?:\([^)]+\))?!?:\s*/i, "");
+
+const normalizeOptionalValue = (value: string | null | undefined): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = normalizeWhitespace(value)
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .replace(/\.$/, "");
+
+  if (!normalized || /^(none|null|n\/a)$/i.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+};
+
+const normalizeSubject = (value: string): string =>
+  normalizeWhitespace(
+    stripCommitPrefix(value)
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .replace(/^[*-]\s*/, "")
+      .replace(/\.$/, "")
+  );
+
+const normalizeGeneratedCommit = (
+  commit: GeneratedCommit,
+  analysis: ReturnType<typeof createCommitAnalysis>
+): GeneratedCommit => {
+  const subject = normalizeSubject(commit.subject);
+  const normalizedScope = normalizeOptionalValue(commit.scope) ?? analysis.candidateScope ?? null;
+
+  return {
+    ...commit,
+    scope: normalizedScope,
+    subject,
+    body: commit.body
+      .map((line) => normalizeOptionalValue(line))
+      .filter((line): line is string => Boolean(line))
+      .slice(0, 3),
+    breakingDescription: normalizeOptionalValue(commit.breakingDescription),
+    why: normalizeOptionalValue(commit.why),
+    issueKey: normalizeOptionalValue(commit.issueKey),
+  };
+};
+
+const enforceProductionQuality = (
+  commit: GeneratedCommit,
+  analysis: ReturnType<typeof createCommitAnalysis>,
+  context: GitDiffContext,
+  regenerationAttempt = 0
+): GeneratedCommit => {
+  const normalizedCommit = normalizeGeneratedCommit(commit, analysis);
+
+  if (!normalizedCommit.subject || normalizedCommit.subject.length > 72 || hasGenericSubject(normalizedCommit.subject)) {
+    return createLocalFallbackCommit(analysis, context, regenerationAttempt);
+  }
+
+  return normalizedCommit;
 };
 
 const createBundleFromContext = async (
   config: CometConfig,
   context: GitDiffContext,
   overrides: RuntimeOverrides = {},
-  mode: "generate" | "inspect" = "generate"
+  mode: "generate" | "inspect" = "generate",
+  generationOptions: BundleGenerationOptions = {}
 ): Promise<GeneratedCommitBundle> => {
   const analysis = createCommitAnalysis(context, config);
+  const regenerationAttempt = generationOptions.regenerationAttempt ?? 0;
   const warnings: string[] = [];
   let generatedCommit: GeneratedCommit;
   let truncated = false;
@@ -92,16 +165,16 @@ const createBundleFromContext = async (
 
   if (mode === "inspect") {
     source = "local-fallback";
-    generatedCommit = createLocalFallbackCommit(analysis, context);
+    generatedCommit = createLocalFallbackCommit(analysis, context, regenerationAttempt);
     warnings.push("Inspect mode uses local analysis only. Provider generation was skipped.");
   } else if (config.privacyMode === "local-only") {
     source = "local-fallback";
-    generatedCommit = createLocalFallbackCommit(analysis, context);
+    generatedCommit = createLocalFallbackCommit(analysis, context, regenerationAttempt);
     warnings.push("Using local-only mode. Provider generation was skipped.");
   } else {
     try {
       const provider = createProvider(config);
-      const prompt = createPrompt(config, context, analysis);
+      const prompt = createPrompt(config, context, analysis, generationOptions);
       truncated = prompt.truncated;
       promptPayload = prompt.payload;
       generatedCommit = await provider.generateCommitMessage({
@@ -113,18 +186,25 @@ const createBundleFromContext = async (
         diff: prompt.payload,
         maxInputTokens: config.maxInputTokens,
         maxOutputTokens: config.maxOutputTokens,
+        regenerationAttempt,
       });
     } catch (error) {
       source = "local-fallback";
       warnings.push(
         `Provider generation failed. Falling back to local commit generation. Reason: ${error instanceof Error ? error.message : String(error)}`
       );
-      generatedCommit = createLocalFallbackCommit(analysis, context);
+      generatedCommit = createLocalFallbackCommit(analysis, context, regenerationAttempt);
     }
   }
 
-  const normalizedCommit = ensureMessageIsUsable(generatedCommit, analysis, context);
-  const finalCommit = applyGeneratedOverrides(normalizedCommit, overrides, config, analysis);
+  const usableCommit = ensureMessageIsUsable(generatedCommit, analysis, context, regenerationAttempt);
+  const productionCommit = enforceProductionQuality(
+    usableCommit,
+    analysis,
+    context,
+    regenerationAttempt
+  );
+  const finalCommit = applyGeneratedOverrides(productionCommit, overrides, config, analysis);
   const formattedMessage = applyMessageTemplate(
     config.messageTemplate,
     formatCommitMessage(finalCommit, config)
@@ -162,7 +242,8 @@ export const ensureReadyRepository = async (config: CometConfig, cwd = process.c
 
 export const analyzeStagedChanges = async (
   overrides: RuntimeOverrides = {},
-  cwd = process.cwd()
+  cwd = process.cwd(),
+  generationOptions: BundleGenerationOptions = {}
 ): Promise<GeneratedCommitBundle> => {
   const config = await loadConfig(toConfigOverrides(overrides), cwd);
   await ensureReadyRepository(config, cwd);
@@ -173,7 +254,7 @@ export const analyzeStagedChanges = async (
   }
 
   const context = await collectDiffContext(config, cwd);
-  return createBundleFromContext(config, context, overrides);
+  return createBundleFromContext(config, context, overrides, "generate", generationOptions);
 };
 
 export const inspectStagedChanges = async (
@@ -196,7 +277,8 @@ export const analyzeCommitRange = async (
   baseRef: string,
   headRef = "HEAD",
   overrides: RuntimeOverrides = {},
-  cwd = process.cwd()
+  cwd = process.cwd(),
+  generationOptions: BundleGenerationOptions = {}
 ): Promise<GeneratedCommitBundle> => {
   const config = await loadConfig(toConfigOverrides(overrides), cwd);
   const context = await collectRangeDiffContext(config, baseRef, headRef, cwd);
@@ -205,7 +287,7 @@ export const analyzeCommitRange = async (
     throw new Error(`No changes found between ${baseRef} and ${headRef}.`);
   }
 
-  return createBundleFromContext(config, context, overrides);
+  return createBundleFromContext(config, context, overrides, "generate", generationOptions);
 };
 
 export const inspectCommitRange = async (

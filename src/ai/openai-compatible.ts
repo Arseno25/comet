@@ -5,6 +5,9 @@ import { extractJsonObject } from "../utils/json.js";
 
 const MAX_ATTEMPTS = 3;
 
+const resolveTemperature = (regenerationAttempt = 0): number =>
+  regenerationAttempt <= 0 ? 0.12 : Math.min(0.32, 0.12 + regenerationAttempt * 0.08);
+
 export class OpenAICompatibleProvider {
   async generateCommitMessage(input: GenerateCommitInput): Promise<GeneratedCommit> {
     if (!input.apiKey) {
@@ -23,7 +26,7 @@ export class OpenAICompatibleProvider {
       try {
         const response = await client.chat.completions.create({
           model: input.model,
-          temperature: 0.15,
+          temperature: resolveTemperature(input.regenerationAttempt),
           max_completion_tokens: input.maxOutputTokens,
           messages: [
             {

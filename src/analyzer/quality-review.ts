@@ -7,8 +7,10 @@ import type {
   GitDiffContext,
 } from "../domain/models.js";
 
-const GENERIC_SUBJECT_PATTERN =
+export const GENERIC_SUBJECT_PATTERN =
   /\b(update|fix|change|adjust|improve|cleanup|refactor)\b.*\b(changes|updates|stuff|things)\b/i;
+
+export const hasGenericSubject = (subject: string): boolean => GENERIC_SUBJECT_PATTERN.test(subject);
 
 export const reviewGeneratedCommit = (
   commit: GeneratedCommit,
@@ -25,7 +27,7 @@ export const reviewGeneratedCommit = (
     suggestions.push("Shorten the subject and keep the most important verb and noun.");
   }
 
-  if (GENERIC_SUBJECT_PATTERN.test(commit.subject)) {
+  if (hasGenericSubject(commit.subject)) {
     score -= 15;
     warnings.push("Subject looks generic and may not describe the real change.");
     suggestions.push("Use a more specific subject that names the feature, bug, or subsystem.");
