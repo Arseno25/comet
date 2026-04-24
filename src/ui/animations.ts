@@ -11,6 +11,15 @@ const colorSpinnerFrame = (frame: string, index: number): string =>
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+const centerInBanner = (plainText: string, renderedText: string, width: number): string => {
+  if (plainText.length >= width) {
+    return renderedText;
+  }
+
+  const leftPadding = Math.floor((width - plainText.length) / 2);
+  return `${" ".repeat(leftPadding)}${renderedText}`;
+};
+
 const renderCometTrailFrame = (step: number): string => {
   const track = Array.from({ length: OUTRO_STEPS + 6 }, () => " ");
   const headIndex = Math.min(step, track.length - 1);
@@ -37,9 +46,12 @@ export const cometIntro = (): void => {
     return;
   }
 
+  const titleText = "☄ Comet";
+  const renderedTitle = `${color.bold(color.cyan("☄"))} ${color.bold(color.white("Comet"))}`;
+
   console.log("");
   console.log(`  ${color.dim(COMET_BAR)}`);
-  console.log(`  ${color.bold(color.cyan("☄"))} ${color.bold(color.white("Comet"))}`);
+  console.log(`  ${centerInBanner(titleText, renderedTitle, COMET_BAR.length)}`);
   console.log(`  ${color.dim(COMET_BAR)}`);
   console.log("");
 };
