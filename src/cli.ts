@@ -15,6 +15,7 @@ import { registerReviewCommand } from "./commands/review.js";
 import { registerSquashCommand } from "./commands/squash.js";
 import { addRuntimeOptions, collectRuntimeOverrides } from "./commands/shared.js";
 import { runCommitFlow } from "./core/run-commit-flow.js";
+import { notifyIfUpdateAvailable } from "./core/update-notifier.js";
 import { logger } from "./ui/logger.js";
 import { cometIntro } from "./ui/animations.js";
 
@@ -47,27 +48,37 @@ const createRuntimeOptionProgram = (): Command => {
   return program;
 };
 
-const readPackageVersion = (): string => {
+const readPackageMetadata = (): { name: string; version: string } => {
   try {
     const packageJsonPath = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       "..",
       "package.json"
     );
-    const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: string };
-    return parsed.version ?? "0.0.0";
+    const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+      name?: string;
+      version?: string;
+    };
+    return {
+      name: parsed.name ?? "comet",
+      version: parsed.version ?? "0.0.0",
+    };
   } catch {
-    return "0.0.0";
+    return {
+      name: "comet",
+      version: "0.0.0",
+    };
   }
 };
 
 const createProgram = (): Command => {
   const program = new Command();
+  const packageMetadata = readPackageMetadata();
 
   program
     .name("comet")
     .description("Comet — Clean commit messages at the speed of light.")
-    .version(readPackageVersion());
+    .version(packageMetadata.version);
 
   addRuntimeOptions(program);
 
@@ -90,6 +101,14 @@ const main = async (): Promise<void> => {
   try {
     const argv = process.argv.slice(2);
     const useDefaultCommitFlow = !hasExplicitSubcommand(argv) && !hasBuiltInMetaFlag(argv);
+    const packageMetadata = readPackageMetadata();
+
+    if (!hasBuiltInMetaFlag(argv)) {
+      await notifyIfUpdateAvailable({
+        packageName: packageMetadata.name,
+        currentVersion: packageMetadata.version,
+      });
+    }
 
     if (useDefaultCommitFlow) {
       const runtimeProgram = createRuntimeOptionProgram();
