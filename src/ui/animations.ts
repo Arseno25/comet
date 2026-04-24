@@ -161,7 +161,7 @@ export const printTreeTail = (message: string, tone: CometTreeTone = "success"):
   }
 
   console.log(pipe);
-  console.log(`${elbow}  ${icon} ${color.bold(message)}`);
+  console.log(`${elbow} ${icon} ${color.bold(message)}`);
   console.log("");
 };
 
