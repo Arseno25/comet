@@ -33,12 +33,14 @@ export const renderList = (
 
 const formatStats = (bundle: GeneratedCommitBundle): string =>
   [
-    renderKeyValueRow("branch", bundle.context.branch),
-    renderKeyValueRow("files", String(bundle.context.stats.filesChanged)),
-    renderKeyValueRow("insertions", String(bundle.context.stats.insertions)),
-    renderKeyValueRow("deletions", String(bundle.context.stats.deletions)),
-    renderKeyValueRow("source", bundle.source),
-  ].join("   ");
+    ["branch", bundle.context.branch],
+    ["files", String(bundle.context.stats.filesChanged)],
+    ["insertions", String(bundle.context.stats.insertions)],
+    ["deletions", String(bundle.context.stats.deletions)],
+    ["source", bundle.source],
+  ]
+    .map(([label, value]) => `${COMET_COLORS.muted(label)} ${value}`)
+    .join("  ");
 
 export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
   const { config } = bundle;
