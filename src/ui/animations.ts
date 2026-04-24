@@ -33,14 +33,13 @@ const renderCometTrailFrame = (step: number): string => {
 
 export const cometIntro = (): void => {
   if (!process.stdout.isTTY) {
-    console.log(`${color.bold(color.cyan("☄"))} ${color.bold("Comet")} ${color.dim("AI commit messages")}`);
+    console.log(`${color.bold(color.cyan("☄"))} ${color.bold("Comet")}`);
     return;
   }
 
   console.log("");
   console.log(`  ${color.dim(COMET_BAR)}`);
-  console.log(`  ${color.bold(color.cyan("☄"))} ${color.bold(color.white("Comet"))} ${color.dim("commit intelligence with a lighter orbit")}`);
-  console.log(`  ${color.yellow("✦")} ${color.dim("analyze staged changes, shape a clean message, confirm with intent")}`);
+  console.log(`  ${color.bold(color.cyan("☄"))} ${color.bold(color.white("Comet"))}`);
   console.log(`  ${color.dim(COMET_BAR)}`);
   console.log("");
 };

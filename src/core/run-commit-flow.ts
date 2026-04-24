@@ -9,6 +9,7 @@ import { chooseCommitAction, confirmGitPush, handlePromptCancel } from "../ui/pr
 import { createSpinner, isInteractiveTerminal } from "../ui/spinner.js";
 import { omitUndefined } from "../utils/object.js";
 import { printJson } from "../utils/output.js";
+import { editTextInEditor } from "../utils/editor.js";
 import { ensureReadyRepository, generateCommitBundle } from "./generate-commit.js";
 import { cometOutro } from "../ui/animations.js";
 
@@ -121,6 +122,17 @@ export const runCommitFlow = async (
       previousMessage = bundle.formattedMessage;
       logger.step("Generating a new commit message alternative.");
       continue;
+    }
+
+    if (action === "edit") {
+      const editedMessage = await editTextInEditor(bundle.formattedMessage);
+      if (!editedMessage) {
+        logger.warn("Edited commit message was empty. Returning to preview.");
+        continue;
+      }
+
+      await commitAndMaybePush(editedMessage, bundle.config.gitPush, cwd);
+      return true;
     }
 
     await commitAndMaybePush(bundle.formattedMessage, bundle.config.gitPush, cwd);

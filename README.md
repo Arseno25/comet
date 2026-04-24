@@ -1,4 +1,4 @@
-# Comet
+#☄Comet (Commit assistant, catchy)
 
 <div align="center">
   <img src="./assets/logo.png" alt="Comet Logo" width="400" />

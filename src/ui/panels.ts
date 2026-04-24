@@ -31,6 +31,18 @@ export const renderList = (
   tone: "default" | "accent" | "success" | "warning" = "default"
 ): string[] => items.map((item) => `${renderBullet(tone)} ${item}`);
 
+const renderFileList = (items: string[]): string[] =>
+  items.map((item) => `${COMET_COLORS.accent("✦")} ${COMET_COLORS.bold(item)}`);
+
+const renderPanelStack = (panels: string[]): string => {
+  if (panels.length <= 1) {
+    return panels.join("\n");
+  }
+
+  const connector = `  ${COMET_COLORS.secondary("│")}`;
+  return panels.join(`\n${connector}\n`);
+};
+
 const formatStats = (bundle: GeneratedCommitBundle): string =>
   ([
     ["branch", bundle.context.branch],
@@ -45,6 +57,27 @@ const formatStats = (bundle: GeneratedCommitBundle): string =>
 export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
   const { config } = bundle;
   const panels: string[] = [];
+  const stagedFiles = bundle.context.files;
+  const visibleFiles = stagedFiles.slice(0, 8);
+
+  panels.push(
+    renderPanel(COMET_PANEL_STYLES.git.title, COMET_PANEL_STYLES.git.border, [
+      COMET_COLORS.secondary(
+        `${stagedFiles.length} staged file${stagedFiles.length === 1 ? "" : "s"} ready for commit`
+      ),
+      "",
+      ...visibleFiles.map((file) => COMET_COLORS.bold(file)),
+      ...(stagedFiles.length > visibleFiles.length
+        ? [
+            COMET_COLORS.muted(
+              `+${stagedFiles.length - visibleFiles.length} more staged file${
+                stagedFiles.length - visibleFiles.length === 1 ? "" : "s"
+              }`
+            ),
+          ]
+        : []),
+    ])
+  );
 
   panels.push(
     renderPanel(COMET_PANEL_STYLES.preview.title, COMET_PANEL_STYLES.preview.border, [
@@ -56,20 +89,21 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
 
   if (config.showSafeSend) {
     const sendPreviewLines = [
-      renderKeyValueRow("included", String(bundle.context.includedFiles.length)),
-      renderKeyValueRow("skipped", String(bundle.context.skippedFiles.length)),
-      renderKeyValueRow("redactions", String(bundle.context.redactionReport.totalMatches)),
-      renderKeyValueRow("privacy", bundle.config.privacyMode),
-      "",
-      COMET_COLORS.secondary("Files included in AI payload"),
-      ...renderList(bundle.context.includedFiles.slice(0, 8), "accent"),
-    ];
-
-    if (bundle.context.skippedFiles.length > 0) {
-      sendPreviewLines.push("");
-      sendPreviewLines.push(COMET_COLORS.warning("Files skipped from AI payload"));
-      sendPreviewLines.push(...renderList(bundle.context.skippedFiles.slice(0, 8), "warning"));
-    }
+        renderKeyValueRow("included", String(bundle.context.includedFiles.length)),
+        renderKeyValueRow("skipped", String(bundle.context.skippedFiles.length)),
+        renderKeyValueRow("redactions", String(bundle.context.redactionReport.totalMatches)),
+        renderKeyValueRow("privacy", bundle.config.privacyMode),
+        "",
+        COMET_COLORS.secondary("Files included in AI payload"),
+        ...renderList(bundle.context.includedFiles.slice(0, 8), "accent"),
+        ...(bundle.context.skippedFiles.length > 0
+          ? [
+              "",
+              COMET_COLORS.warning("Files skipped from AI payload"),
+              ...renderList(bundle.context.skippedFiles.slice(0, 8), "warning"),
+            ]
+          : []),
+      ];
 
     panels.push(
       renderPanel(COMET_PANEL_STYLES.safeSend.title, COMET_PANEL_STYLES.safeSend.border, sendPreviewLines)
@@ -118,7 +152,7 @@ export const renderCommitPreview = (bundle: GeneratedCommitBundle): string => {
     );
   }
 
-  return panels.join("\n");
+  return renderPanelStack(panels);
 };
 
 export const renderConfigPanel = (title: string, lines: string[]): string =>

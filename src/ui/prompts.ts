@@ -1,12 +1,13 @@
 import * as p from "@clack/prompts";
 
-export type CommitAction = "accept" | "regenerate" | "cancel";
+export type CommitAction = "accept" | "edit" | "regenerate" | "cancel";
 
 export const chooseCommitAction = async (): Promise<CommitAction> => {
   const result = await p.select<CommitAction>({
     message: "Commit this message?",
     options: [
       { value: "accept", label: "Yes", hint: "commit now" },
+      { value: "edit", label: "Edit", hint: "open in editor" },
       { value: "regenerate", label: "Regenerate", hint: "generate a new alternative" },
       { value: "cancel", label: "Cancel", hint: "abort" },
     ],
