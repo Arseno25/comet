@@ -2,7 +2,7 @@ import type { Command } from "commander";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { loadConfig } from "../config/loader.js";
-import { getGlobalConfigPath } from "../config/paths.js";
+import { getGlobalConfigPath, projectConfigCandidates } from "../config/paths.js";
 import { getStagedFiles, isGitRepository } from "../git/status.js";
 import { renderConfigPanel, renderStatusRow } from "../ui/panels.js";
 import { printJson } from "../utils/output.js";
@@ -10,7 +10,7 @@ import { printJson } from "../utils/output.js";
 const maskValue = (value: string | null): string => (value ? "[configured]" : "[empty]");
 
 const getProjectConfigPath = (): string | null => {
-  for (const fileName of [".comet.env", ".cometrc", ".cometrc.json"]) {
+  for (const fileName of projectConfigCandidates) {
     const candidate = path.join(process.cwd(), fileName);
     if (existsSync(candidate)) {
       return candidate;

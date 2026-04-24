@@ -18,17 +18,19 @@ export const redactSecretsWithReport = (
   const matches: RedactionReport["matches"] = [];
 
   for (const entry of secretPatterns) {
-    const pattern = clonePattern(entry.pattern);
-    const found = [...redacted.matchAll(pattern)].length;
-    if (found === 0) {
-      continue;
-    }
-
-    redacted = redacted.replace(clonePattern(entry.pattern), entry.replacement);
-    matches.push({
-      label: entry.label,
-      count: found,
+    let count = 0;
+    redacted = redacted.replace(clonePattern(entry.pattern), (...args) => {
+      count += 1;
+      const groups = args.slice(1, -2) as string[];
+      return entry.replacement.replace(/\$(\d+)/g, (_match, indexString) => {
+        const index = Number(indexString) - 1;
+        return groups[index] ?? "";
+      });
     });
+
+    if (count > 0) {
+      matches.push({ label: entry.label, count });
+    }
   }
 
   const totalMatches = matches.reduce((total, match) => total + match.count, 0);

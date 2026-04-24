@@ -79,13 +79,20 @@ export const runCommitFlow = async (
 
   while (true) {
     const spinner = createSpinner();
-    spinner.start("Analyzing staged diff and generating commit message");
+    spinner.start("Analyzing staged diff");
 
-    const bundle = await generateCommitBundle(overrides, cwd, {
-      regenerationAttempt,
-      previousMessage,
-    });
-    spinner.stop("Commit message ready");
+    let bundle: Awaited<ReturnType<typeof generateCommitBundle>>;
+    try {
+      spinner.update("Generating commit message");
+      bundle = await generateCommitBundle(overrides, cwd, {
+        regenerationAttempt,
+        previousMessage,
+      });
+      spinner.stop("Commit message ready", true);
+    } catch (error) {
+      spinner.stop(error instanceof Error ? error.message : "Generation failed", false);
+      throw error;
+    }
 
     if (bundle.truncated) {
       logger.warn("Diff was truncated to stay within the configured token budget.");
