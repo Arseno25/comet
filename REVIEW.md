@@ -64,6 +64,80 @@ Namun ada 1 area penting yang perlu diperketat: output JSON pada command `analyz
 - Buat DTO serializer terpusat (mis. `src/core/serializers.ts`) untuk JSON output tiap command agar konsistensi antar command meningkat.
 - Tambah test spesifik command JSON output (contract test) agar format output stabil untuk integrasi eksternal.
 
+## Breaking Changes to JSON Output Contract
+
+### `comet analyze --json` Output Format Change
+
+**Date**: May 19, 2026
+
+The JSON output shape for `comet analyze --json` has been modified to expose only essential, user-facing data and hide internal implementation details. This is a **breaking change** for any external tooling or scripts that parse the JSON output.
+
+#### Fields Renamed or Moved
+- `bundle.review` → `quality` (renamed at top level)
+- `bundle.context.redactionReport` → `redactionReport` (hoisted to top level)
+
+#### Fields Removed (No Longer Exported)
+- `config` - Internal configuration object
+- `promptPayload` - Internal prompt sent to AI provider
+- `truncated` - Internal flag indicating prompt truncation
+- `rawDiff` - Raw git diff output (removed from context)
+- `safeDiff` - Redacted diff (removed from context)
+- `semanticDiff` - Semantic diff (removed from context)
+
+#### New JSON Output Structure
+```json
+{
+  "source": "provider" | "local-fallback",
+  "warnings": ["string"],
+  "analysis": {
+    "candidateType": "string",
+    "candidateScope": "string | null",
+    "summary": "string",
+    "rationale": ["string"],
+    ...
+  },
+  "quality": {
+    "score": "number",
+    "warnings": ["string"],
+    ...
+  },
+  "diffReview": {
+    "riskLevel": "string",
+    "concerns": ["string"],
+    ...
+  },
+  "redactionReport": {
+    "redacted": "boolean",
+    "patterns": ["string"],
+    ...
+  },
+  "context": {
+    "branch": "string",
+    "issueKey": "string | null",
+    "files": ["string"],
+    "includedFiles": ["string"],
+    "skippedFiles": ["string"],
+    "stats": { ... },
+    "semanticChanges": [...]
+  },
+  "generatedCommit": {
+    "type": "string",
+    "scope": "string | null",
+    "subject": "string",
+    ...
+  },
+  "formattedMessage": "string"
+}
+```
+
+#### Migration Guide
+If your tooling depends on the removed fields:
+- **`config`**: Load configuration separately using comet's config loading mechanism
+- **`promptPayload`, `truncated`**: These were internal details; if needed for debugging, enable verbose logging instead
+- **`rawDiff`, `safeDiff`, `semanticDiff`**: Use `git diff --staged` or similar git commands to retrieve diff data directly
+- **`review`**: Update references to use `quality` instead
+- **`context.redactionReport`**: Update references to use top-level `redactionReport` instead
+
 ## Checklist Verifikasi Review
 
 - `npm run lint` ✅
