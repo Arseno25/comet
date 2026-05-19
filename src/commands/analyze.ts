@@ -14,7 +14,25 @@ export const registerAnalyzeCommand = (program: Command): void => {
     const bundle = await inspectStagedChanges(overrides);
 
     if (overrides.json) {
-      printJson(bundle);
+      printJson({
+        source: bundle.source,
+        warnings: bundle.warnings,
+        analysis: bundle.analysis,
+        quality: bundle.review,
+        diffReview: bundle.diffReview,
+        redactionReport: bundle.context.redactionReport,
+        context: {
+          branch: bundle.context.branch,
+          issueKey: bundle.context.issueKey,
+          files: bundle.context.files,
+          includedFiles: bundle.context.includedFiles,
+          skippedFiles: bundle.context.skippedFiles,
+          stats: bundle.context.stats,
+          semanticChanges: bundle.context.semanticChanges,
+        },
+        generatedCommit: bundle.generatedCommit,
+        formattedMessage: bundle.formattedMessage,
+      });
       return;
     }
 
